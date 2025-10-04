@@ -15,7 +15,6 @@ import nro.models.boss.Boss_Manager.GasDestroyManager;
 import nro.models.boss.Boss_Manager.YardartManager;
 import nro.models.boss.Boss_Manager.SkillSummonedManager;
 import nro.models.interfaces.ISession;
-import nro.models.network.Network;
 import nro.models.network.MyKeyHandler;
 import nro.models.network.MySession;
 import nro.models.services_dungeon.NgocRongNamecService;
@@ -190,24 +189,42 @@ public class ServerManager {
 
     public void activeServerSocket() {
         try {
-            Logger.log("activeServerSocket");
-            Network.gI().init().setAcceptHandler(new ISessionAcceptHandler() {
-                @Override
-                public void sessionInit(ISession is) {
-                    String ip = is.getIP();
-                    if (AntiDDoSService.isBlocked(ip)) {
-                        is.disconnect();
-                        return;
-                    }
-                    is.setMessageHandler(Controller.gI())
-                            .setSendCollect(new MessageSendCollect())
-                            .setKeyHandler(new MyKeyHandler())
-                            .startQueueHandler();
+            // ==========================================
+            // ✅ CHỈ DÙNG NETTY (Comment code cũ)
+            // ==========================================
+            Logger.success("✅ ĐANG DÙNG NETTY");
+            new Thread(() -> {
+                try {
+                    nro.models.network.netty.NettyServer nettyServer
+                            = new nro.models.network.netty.NettyServer(PORT);
+                    nettyServer.setAcceptHandler(new ISessionAcceptHandler() {
+                        @Override
+                        public void sessionInit(ISession is) {
+                            String ip = is.getIP();
+                            if (AntiDDoSService.isBlocked(ip)) {
+                                is.disconnect();
+                                return;
+                            }
+                            is.setMessageHandler(Controller.gI())
+                                    .setSendCollect(new MessageSendCollect())
+                                    .setKeyHandler(new MyKeyHandler())
+                                    .startQueueHandler();
+                        }
+
+                        @Override
+                        public void sessionDisconnect(ISession session) {
+                            Client.gI().kickSession((MySession) session);
+                            disconnect((MySession) session);
+                        }
+                    });
+                    nettyServer.start();
+                } catch (Exception e) {
+                    Logger.error("❌ Lỗi Netty: " + e.getMessage());
+                    e.printStackTrace();
                 }
-            }).start(PORT);
-            Logger.success("🚀 Server started on port " + PORT);
+            }, "NettyServerThread").start();
         } catch (Exception e) {
-            Logger.error("Lỗi khi khởi động máy chủ: " + e.getMessage());
+            Logger.error("Lỗi khởi động: " + e.getMessage());
         }
     }
 
