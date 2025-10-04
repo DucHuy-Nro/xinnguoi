@@ -6,11 +6,17 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import nro.models.network.Message;
 import java.util.List;
 
+/**
+ * Decode ByteBuf → Message
+ * Protocol format: [cmd:1byte][size:2bytes][data:size bytes]
+ */
 public class MessageDecoder extends ByteToMessageDecoder {
+    
+    private static final int MAX_MESSAGE_SIZE = 2 * 1024 * 1024; // 2MB
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        // Cần ít nhất 3 bytes: cmd (1) + size (2)
+        // Need at least 3 bytes: cmd(1) + size(2)
         if (in.readableBytes() < 3) {
             return;
         }
@@ -18,30 +24,31 @@ public class MessageDecoder extends ByteToMessageDecoder {
         in.markReaderIndex();
         
         byte cmd = in.readByte();
-        short size = in.readShort();
+        int size = in.readUnsignedShort();
         
-        // Kiểm tra message hợp lệ
-        if (size < 0 || size > 1024 * 1024) { // Max 1MB
+        // Validate message size
+        if (size < 0 || size > MAX_MESSAGE_SIZE) {
             ctx.close();
             return;
         }
         
-        // Chờ đủ data
+        // Check if full message available
         if (in.readableBytes() < size) {
             in.resetReaderIndex();
             return;
         }
         
-        // Đọc data
+        // Read message data
         byte[] data = new byte[size];
         in.readBytes(data);
         
-        // Tạo Message object
-        Message message = new Message(cmd);
-        if (size > 0) {
-            message.writer().write(data);
-        }
-        
+        // Create Message object (dùng constructor với data)
+        Message message = new Message(cmd, data);
         out.add(message);
+    }
+    
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        ctx.close();
     }
 }

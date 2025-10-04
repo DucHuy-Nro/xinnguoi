@@ -15,7 +15,7 @@ import nro.models.boss.Boss_Manager.GasDestroyManager;
 import nro.models.boss.Boss_Manager.YardartManager;
 import nro.models.boss.Boss_Manager.SkillSummonedManager;
 import nro.models.interfaces.ISession;
-import nro.models.network.NettyServer;
+import nro.models.network.netty.NettyServer;
 import nro.models.network.Network;
 import nro.models.network.MyKeyHandler;
 import nro.models.network.MySession;

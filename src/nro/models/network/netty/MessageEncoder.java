@@ -5,6 +5,11 @@ import io.netty.channel.*;
 import io.netty.handler.codec.MessageToByteEncoder;
 import nro.models.network.Message;
 
+/**
+ * Encode Message → ByteBuf
+ * 
+ * Protocol format: [cmd:1byte][size:2bytes][data:size bytes]
+ */
 public class MessageEncoder extends MessageToByteEncoder<Message> {
     
     @Override
@@ -12,13 +17,17 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
         try {
             byte[] data = msg.getData();
             
-            // Write format: [cmd:1byte][size:2bytes][data:nbytes]
+            // Write protocol: [cmd][size][data]
             out.writeByte(msg.command);
             out.writeShort(data.length);
-            out.writeBytes(data);
+            
+            if (data.length > 0) {
+                out.writeBytes(data);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
+            ctx.close();
         }
     }
 }
