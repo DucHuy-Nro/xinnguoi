@@ -213,8 +213,17 @@ public class ServerManager {
 
                         @Override
                         public void sessionDisconnect(ISession session) {
-                            Client.gI().kickSession((MySession) session);
-                            disconnect((MySession) session);
+                            // FIX ClassCastException: Không cast sang MySession!
+                            try {
+                                if (session instanceof MySession) {
+                                    MySession mySession = (MySession) session;
+                                    Client.gI().kickSession(mySession);
+                                    disconnect(mySession);
+                                }
+                                // NettySession tự cleanup, không cần làm gì
+                            } catch (Exception e) {
+                                Logger.error("Error disconnect: " + e.getMessage());
+                            }
                         }
                     });
                     nettyServer.start();
