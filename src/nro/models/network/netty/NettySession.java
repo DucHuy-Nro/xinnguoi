@@ -190,4 +190,7 @@ public class NettySession implements ISession {
         }
         return address;
     }
+    public IMessageSendCollect getSendCollect() {
+    return sendCollect;
+}
 }
