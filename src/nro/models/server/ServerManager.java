@@ -15,6 +15,7 @@ import nro.models.boss.Boss_Manager.GasDestroyManager;
 import nro.models.boss.Boss_Manager.YardartManager;
 import nro.models.boss.Boss_Manager.SkillSummonedManager;
 import nro.models.interfaces.ISession;
+import nro.models.network.NettyServer;
 import nro.models.network.Network;
 import nro.models.network.MyKeyHandler;
 import nro.models.network.MySession;
@@ -189,31 +190,22 @@ public class ServerManager {
 
     public void activeServerSocket() {
         try {
-            Network.gI().init().setAcceptHandler(new ISessionAcceptHandler() {
-                @Override
-                public void sessionInit(ISession is) {
-                    String ip = is.getIP();
-                    if (AntiDDoSService.isBlocked(ip)) {
-                        is.disconnect();
-                        return;
-                    }
-                    is.setMessageHandler(Controller.gI())
-                            .setSendCollect(new MessageSendCollect())
-                            .setKeyHandler(new MyKeyHandler())
-                            .startCollect().startQueueHandler();
-                }
+            // ❌ Code cũ (comment lại)
+            // Network.gI().init().setAcceptHandler(...).start(PORT);
 
-                @Override
-                public void sessionDisconnect(ISession session) {
-                    Client.gI().kickSession((MySession) session);
-                    disconnect((MySession) session);
+            // ✅ Code mới (Netty)
+            new Thread(() -> {
+                try {
+                    NettyServer nettyServer = new NettyServer(PORT);
+                    nettyServer.start();
+                } catch (Exception e) {
+                    Logger.error("❌ Netty server error: " + e.getMessage());
+                    e.printStackTrace();
                 }
-            }).setTypeSessionClone(MySession.class)
-                    .setDoSomeThingWhenClose(() -> {
-                        Logger.error("SERVER CLOSE\n");
-                        System.exit(0);
-                    })
-                    .start(PORT);
+            }, "NettyServer").start();
+
+            Logger.success("🚀 Server started with Netty on port " + PORT);
+
         } catch (Exception e) {
             Logger.error("Lỗi khi khởi động máy chủ: " + e.getMessage());
         }
