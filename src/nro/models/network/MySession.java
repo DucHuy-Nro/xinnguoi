@@ -68,7 +68,12 @@ public class MySession extends Session {
 
     public MySession(Socket socket) {
         super(socket);
-        ipAddress = socket.getInetAddress().getHostAddress();
+        if (socket != null) {
+            ipAddress = socket.getInetAddress().getHostAddress();
+        } else {
+            // Netty session sẽ set ipAddress sau
+            ipAddress = "0.0.0.0";
+        }
     }
 
     @Override
