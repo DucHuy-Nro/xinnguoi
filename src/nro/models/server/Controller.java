@@ -636,29 +636,20 @@ public class Controller implements IMessageHandler {
                 case -27:
                     System.out.println("📥 Controller: cmd=-27, sentKey=" + _session.sentKey());
                     try {
-                        if (!_session.sentKey()) {
-                            // LẦN ĐẦU: Gửi init data
-                            System.out.println("⚠️ FIRST -27! Setting sentKey=true, sending ALL init data...");
-                            _session.setSentKey(true);
-                            
-                            // -77: SmallVersion
-                            System.out.println("📤 1/3: SmallVersion (-77)");
-                            nro.models.data.DataGame.sendSmallVersion(_session);
-                            
-                            // -93: BgItemVersion
-                            System.out.println("📤 2/3: BgItemVersion (-93)");
-                            nro.models.data.DataGame.sendBgItemVersion(_session);
-                            
-                            // -74: VersionRes
-                            System.out.println("📤 3/3: VersionRes (-74)");
-                            DataGame.sendVersionRes((ISession) _session);
-                            
-                            System.out.println("✅ ALL INIT DATA SENT! Client should start loading...");
-                        } else {
-                            // LẦN 2+: Chỉ gửi version
-                            DataGame.sendVersionRes((ISession) _session);
-                            System.out.println("✅ VersionRes sent (2nd time)");
-                        }
+                        // sentKey đã được set trong Handler rồi, giờ gửi data
+                        // -77: SmallVersion
+                        System.out.println("📤 1/3: SmallVersion (-77)");
+                        nro.models.data.DataGame.sendSmallVersion(_session);
+                        
+                        // -93: BgItemVersion
+                        System.out.println("📤 2/3: BgItemVersion (-93)");
+                        nro.models.data.DataGame.sendBgItemVersion(_session);
+                        
+                        // -74: VersionRes
+                        System.out.println("📤 3/3: VersionRes (-74)");
+                        DataGame.sendVersionRes((ISession) _session);
+                        
+                        System.out.println("✅ ALL INIT DATA SENT! Client should load...");
                     } catch (Exception ex) {
                         System.out.println("❌ Error: " + ex.getMessage());
                         ex.printStackTrace();
