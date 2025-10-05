@@ -70,7 +70,8 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
         dos.flush();
     }
     
-    private byte readKey(ISession session, byte b) {
+    @Override
+    public byte readKey(ISession session, byte b) {
         byte[] keys = session.getKey();
         byte result = (byte) (keys[curR++] ^ b);
         if (curR >= keys.length) {
@@ -79,7 +80,8 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
         return result;
     }
     
-    private byte writeKey(ISession session, byte b) {
+    @Override
+    public byte writeKey(ISession session, byte b) {
         byte[] keys = session.getKey();
         byte result = (byte) (keys[curW++] ^ b);
         if (curW >= keys.length) {

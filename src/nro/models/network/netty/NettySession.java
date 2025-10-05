@@ -13,15 +13,12 @@ import nro.models.network.MySession;
 public class NettySession extends MySession {
     
     private final ChannelHandlerContext ctx;
-    private final NettyMessageSendCollect nettySendCollect;
+    private final NettyMessageSendCollect nettySendCollect = new NettyMessageSendCollect();
     
     public NettySession(ChannelHandlerContext ctx) {
         super(null); // Không cần Socket
         this.ctx = ctx;
         this.ipAddress = extractIP(ctx);
-        
-        // Tạo NettyMessageSendCollect riêng cho session này
-        this.nettySendCollect = new NettyMessageSendCollect();
     }
     
     // Override để trả về NettyMessageSendCollect
