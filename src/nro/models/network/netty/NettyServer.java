@@ -55,11 +55,12 @@ public class NettyServer {
                 .option(ChannelOption.SO_REUSEADDR, true)
                 
                 // Client options (mỗi connection)
-                .childOption(ChannelOption.TCP_NODELAY, true)      // Tắt Nagle = giảm latency
-                .childOption(ChannelOption.SO_KEEPALIVE, true)     // Keep connection alive
-                .childOption(ChannelOption.SO_SNDBUF, 1048576)     // Send buffer 1MB
-                .childOption(ChannelOption.SO_RCVBUF, 1048576)     // Receive buffer 1MB
-                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT) // Pool memory
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.SO_SNDBUF, 2097152)     // Send buffer 2MB (tăng lên!)
+                .childOption(ChannelOption.SO_RCVBUF, 2097152)     // Receive buffer 2MB
+                .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(8192, 32768))
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 
                 // Logging cho debug
                 .handler(new LoggingHandler(LogLevel.INFO))
