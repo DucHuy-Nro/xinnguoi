@@ -20,11 +20,10 @@ public class NettySession extends MySession {
         this.ipAddress = extractIP(ctx);
     }
     
-    // Thêm method để NettyMessageDecoder/Encoder dùng
+    // Override để lấy sendCollect từ parent
+    @Override
     public nro.models.interfaces.IMessageSendCollect getSendCollect() {
-        // Lấy từ parent class nếu có
-        // Hoặc return null nếu chưa set
-        return null; // TODO: Implement proper getter
+        return super.getSendCollect();
     }
     
     @Override
