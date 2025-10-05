@@ -751,7 +751,7 @@ public class Controller implements IMessageHandler {
                         String user = msg.reader().readUTF();
                         String pass = msg.reader().readUTF();
                         System.out.println("📥 Login: user=" + user);
-                        session.login(user, pass);
+                        session.login(user, pass);  // MySession has login() method
                         break;
                     case 2:
                         System.out.println("📥 setClientType");
