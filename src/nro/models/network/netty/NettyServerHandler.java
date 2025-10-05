@@ -64,11 +64,11 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             return;
         }
         
-        // ⭐ Set sentKey=true NGAY khi nhận cmd=-27!
-        if (msg.command == -27 && !session.sentKey()) {
-            System.out.println("⚠️ HANDLER: Receiving cmd=-27, setting sentKey=true NOW!");
-            session.setSentKey(true);
-        }
+        // KHÔNG SET sentKey ở đây! Để Controller xử lý!
+        // Set ở đây sẽ làm Controller không biết là lần đầu hay lần 2
+        // if (msg.command == -27 && !session.sentKey()) {
+        //     session.setSentKey(true);
+        // }
 
         if (session.getQueueHandler() == null) {
             System.out.println("❌ HANDLER: QueueHandler is null!");
