@@ -13,19 +13,24 @@ import nro.models.network.MySession;
 public class NettySession extends MySession {
     
     private final ChannelHandlerContext ctx;
-    
+    private final NettyMessageSendCollect nettySendCollect = new NettyMessageSendCollect();
     public NettySession(ChannelHandlerContext ctx) {
         super(null); // Không cần Socket
         this.ctx = ctx;
         this.ipAddress = extractIP(ctx);
+        
+   
     }
     
-    // Override để lấy sendCollect từ parent
+    // Override để trả về NettyMessageSendCollect
     @Override
     public nro.models.interfaces.IMessageSendCollect getSendCollect() {
-        return super.getSendCollect();
+       return this.nettySendCollect;
     }
-    
+    @Override
+    public void sendKey() throws Exception {
+        sendSessionKey();
+    }
     @Override
     public void sendMessage(Message msg) {
         if (ctx != null && ctx.channel().isActive()) {
@@ -40,6 +45,9 @@ public class NettySession extends MySession {
     
     @Override
     public void disconnect() {
+         System.out.println("⚠️ NettySession.disconnect() called!");
+        new Exception("Disconnect called from:").printStackTrace();
+
         if (ctx != null && ctx.channel().isActive()) {
             ctx.close();
         }
@@ -47,7 +55,11 @@ public class NettySession extends MySession {
     
     @Override
     public boolean isConnected() {
-        return ctx != null && ctx.channel().isActive();
+              boolean active = ctx != null && ctx.channel().isActive();
+        if (!active) {
+            System.out.println("⚠️ NettySession.isConnected() = FALSE! ctx=" + (ctx != null) + ", active=" + (ctx != null ? ctx.channel().isActive() : "null"));
+        }
+        return active;
     }
     
     @Override

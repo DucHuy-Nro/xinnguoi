@@ -34,10 +34,11 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
                 return;
             }
             
-            System.out.println("📥 V3 DECODER: Processing " + readable + " bytes");
+            System.out.println("📥 V3 DECODER: Processing " + readable + " bytes, sentKey=" + session.sentKey());
             
             // Chuyển ByteBuf → byte array
-            byte[] buffer = new byte[readable];
+             int toRead = Math.min(readable, 1024);
+            byte[] buffer = new byte[toRead];
             in.markReaderIndex();
             in.readBytes(buffer);
             
@@ -46,27 +47,37 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             DataInputStream dis = new DataInputStream(bais);
             
             // Dùng MessageSendCollect.readMessage() (có handle encryption!)
-            Message msg = session.getSendCollect().readMessage(session, dis);
+              Message msg = null;
+            try {
+                msg = session.getSendCollect().readMessage(session, dis);
+            } catch (Exception ex) {
+                System.out.println("❌ V3 DECODER readMessage exception: " + ex.getMessage());
+                ex.printStackTrace();
+                in.resetReaderIndex();
+                return;
+            }
             
             if (msg != null) {
                 // Tính bytes consumed
-                int consumed = readable - dis.available();
+                int consumed = toRead - dis.available();
                 
                 // Reset và skip
                 in.resetReaderIndex();
                 in.skipBytes(consumed);
                 
                 out.add(msg);
-                System.out.println("✅ V3 DECODER: Success! cmd=" + msg.command);
+                System.out.println("✅ V3 DECODER: Success! cmd=" + msg.command + ", consumed=" + consumed + " bytes");
+                return;
             } else {
                 // Rollback
                 in.resetReaderIndex();
-                System.out.println("⏳ V3 DECODER: Not complete yet");
+               System.out.println("⏳ V3 DECODER: Message is null, waiting...");
             }
             
         } catch (Exception e) {
             in.resetReaderIndex();
-            System.out.println("❌ V3 DECODER: " + e.getMessage());
+                        System.out.println("❌ V3 DECODER outer exception: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

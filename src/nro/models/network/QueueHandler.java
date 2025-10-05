@@ -28,6 +28,7 @@ public class QueueHandler implements Runnable {
 
     @Override
     public void run() {
+        
         System.out.println("🚀 QUEUE: Started for session " + session.getID());
         
         try {
@@ -56,10 +57,21 @@ public class QueueHandler implements Runnable {
 
     public void addMessage(Message msg) {
         try {
-            if (session.isConnected() && messages.size() < 500) {
-                messages.add(msg);
+            System.out.println("➕ addMessage: cmd=" + msg.command + ", connected=" + session.isConnected() + ", queueSize=" + messages.size());
+
+            if (!session.isConnected()) {
+                System.out.println("❌ Session not connected!");
+                return;
             }
+            if (messages.size() >= 500) {
+                System.out.println("❌ Queue full!");
+                return;
+            }
+
+            messages.add(msg);
+            System.out.println("✅ HANDLER: Message added to queue");
         } catch (Exception e) {
+            System.out.println("❌ addMessage exception: " + e.getMessage());
             e.printStackTrace();
         }
     }

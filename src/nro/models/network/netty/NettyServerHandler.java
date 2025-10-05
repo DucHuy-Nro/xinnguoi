@@ -44,9 +44,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
             // ⭐ GỬI SESSION KEY NGAY
             try {
-                System.out.println("📤 Sending session key...");
-                session.sendKey();
-                System.out.println("✅ Key sent!");
+                System.out.println("📤 Sending session key DIRECT...");
+                sendSessionKeyDirect(ctx, session);
+
+                System.out.println("✅ Key sent! Waiting for client reply...");
             } catch (Exception ex) {
                 Logger.error("❌ Error sending key: " + ex.getMessage());
                 ex.printStackTrace();
@@ -61,18 +62,27 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             ctx.close();
         }
     }
+    
+    
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
         System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
 
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
+        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
 
-        if (session == null) {
+     if (session == null) {
             System.out.println("❌ HANDLER: Session is null!");
             return;
         }
-
+     
+      // ⭐ QUAN TRỌNG: Set sentKey=true NGAY khi thấy cmd=-27!
+        // Phải set TRƯỚC KHI Decoder decode message tiếp theo!
+        if (msg.command == -27 && !session.sentKey()) {
+            System.out.println("⚠️ HANDLER: cmd=-27, setting sentKey=true BEFORE next decode!");
+            session.setSentKey(true);
+        }
         if (session.getQueueHandler() == null) {
             System.out.println("❌ HANDLER: QueueHandler is null!");
             return;
@@ -80,7 +90,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
         try {
             session.getQueueHandler().addMessage(msg);
-            System.out.println("✅ HANDLER: Message added to queue");
         } catch (Exception e) {
             System.out.println("❌ HANDLER: Error - " + e.getMessage());
             e.printStackTrace();
@@ -147,5 +156,36 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         return address;
     }
+     private void sendSessionKeyDirect(ChannelHandlerContext ctx, NettySession session) {
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            java.io.DataOutputStream dos = new java.io.DataOutputStream(baos);
+
+            byte[] keys = session.getKey();
+
+            // Write PLAIN (chưa có encryption!)
+            dos.writeByte(-27);  // cmd
+            dos.writeShort(keys.length + 1);  // size
+            dos.writeByte(keys.length);  // key length
+            dos.writeByte(keys[0]);
+            for (int i = 1; i < keys.length; i++) {
+                dos.writeByte(keys[i] ^ keys[i - 1]);
+            }
+
+            byte[] data = baos.toByteArray();
+
+            // Gửi trực tiếp qua channel (bypass encoder!)
+            io.netty.buffer.ByteBuf buf = ctx.alloc().buffer(data.length);
+            buf.writeBytes(data);
+            ctx.writeAndFlush(buf);
+
+//            session.setSentKey(true);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
 

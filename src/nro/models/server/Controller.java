@@ -62,19 +62,7 @@ import nro.models.shop_ky_gui.ConsignShopService;
 public class Controller implements IMessageHandler {
 
     private int errors;
-
     private static Controller instance;
-
-    // Helper method to get player from ISession
-    private Player getPlayer(ISession session) {
-        if (session instanceof MySession) {
-            return ((MySession) session).player;
-        } else if (session instanceof nro.models.network.netty.NettySession) {
-            // This assumes NettySession has a public 'player' field.
-            return ((nro.models.network.netty.NettySession) session).player;
-        }
-        return null;
-    }
 
     public static Controller gI() {
         if (instance == null) {
@@ -83,16 +71,16 @@ public class Controller implements IMessageHandler {
         return instance;
     }
 
-    @Override
-    public void onMessage(ISession s, Message _msg) {
-        long st = System.currentTimeMillis();
-        
-        // Cast ISession -> MySession (NettySession extends MySession nên OK!)
-        MySession _session = (MySession) s;
-        Player player = null;
-        try {
+ @Override
+public void onMessage(ISession s, Message _msg) {
+    long st = System.currentTimeMillis();
+    MySession _session = (MySession) s;  // NettySession extends MySession
+    Player player = null;
+    System.out.println("🎮 onMessage: cmd=" + _msg.command + ", player=" + (player != null ? player.name : "null"));
+    try {
         player = _session.player;
         byte cmd = _msg.command;
+        System.out.println("🎮 Switch: cmd=" + cmd + ", player=" + (player != null ? "exists" : "null"));
         switch (cmd) {
                 case -100:
                     if (player == null) {
@@ -418,11 +406,16 @@ public class Controller implements IMessageHandler {
                     String ip = s.getIP();
                     Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
                     byte type = _msg.reader().readByte();
-                  if (type == 1) {
-    DataGame.sendSizeRes(_session);
-} else if (type == 2) {
-    DataGame.sendRes(_session);
-}
+                    System.out.println("📥 CMD -74: type=" + type + ", session=" + _session.getClass().getSimpleName());
+                    if (type == 1) {
+                        System.out.println("📤 Calling sendSizeRes...");
+                        DataGame.sendSizeRes(_session);
+                        System.out.println("✅ sendSizeRes done");
+                    } else if (type == 2) {
+                        System.out.println("📤 Calling sendRes...");
+                        DataGame.sendRes(_session);
+                        System.out.println("✅ sendRes done");
+                    }
                     break;
                 case -81:
                     if (player != null) {
@@ -638,9 +631,29 @@ public class Controller implements IMessageHandler {
                         Service.gI().attackPlayer(player, playerId);
                     }
                     break;
-             case -27:
-    _session.sendKey();
-    DataGame.sendVersionRes(_session);
+             case -27:       
+                   System.out.println("📥 Controller: cmd=-27, sentKey=" + _session.sentKey());
+                    try {
+                        
+                        
+                       // sentKey đã được set trong Handler rồi, giờ gửi data
+                        // -77: SmallVersion
+                        System.out.println("📤 1/3: SmallVersion (-77)");
+                        nro.models.data.DataGame.sendSmallVersion(_session);
+
+                        // -93: BgItemVersion
+                        System.out.println("📤 2/3: BgItemVersion (-93)");
+                        nro.models.data.DataGame.sendBgItemVersion(_session);
+
+                        // -74: VersionRes
+                        System.out.println("📤 3/3: VersionRes (-74)");
+                        DataGame.sendVersionRes((ISession) _session);
+
+                        System.out.println("✅ ALL INIT DATA SENT! Client should load...");
+                    } catch (Exception ex) {
+                         System.out.println("❌ Error: " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
                     break;
              case -111:
     DataGame.sendDataImageVersion(_session);
@@ -652,13 +665,20 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -28:
-                    messageNotMap(s, _msg);
+                    messageNotMap(_session, _msg);
                     break;
                 case -29:
-                    messageNotLogin(s, _msg);
+                     System.out.println("📥 Controller: case -29, calling messageNotLogin...");
+                    try {
+                        messageNotLogin(_session, _msg);
+                        System.out.println("✅ messageNotLogin returned");
+                    } catch (Exception ex) {
+                        System.out.println("❌ Exception in messageNotLogin: " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
                     break;
                 case -30:
-                    messageSubCommand(s, _msg);
+                    messageSubCommand(_session, _msg);
                     break;
                 case -15: // về nhà
                     if (player != null) {
@@ -738,29 +758,36 @@ public class Controller implements IMessageHandler {
         }
     }
 
-    public void messageNotLogin(ISession session, Message msg) {
+   public void messageNotLogin(MySession session, Message msg) {
         if (msg != null && session instanceof MySession) {
             MySession mySession = (MySession) session;
             try {
                 byte cmd = msg.reader().readByte();
+                System.out.println("📥 messageNotLogin: subCmd=" + cmd);
                 switch (cmd) {
                     case 0:
-                        mySession.login(msg.reader().readUTF(), msg.reader().readUTF());
+                        String user = msg.reader().readUTF();
+                        String pass = msg.reader().readUTF();
+                        System.out.println("📥 Login: user=" + user);
+                        session.login(user, pass);  // MySession has login() method
                         break;
                     case 2:
                         Service.gI().setClientType(mySession, msg);
                         break;
                     default:
+                        System.out.println("⚠️ Unknown subCmd: " + cmd);
                         break;
                 }
             } catch (IOException e) {
+                System.out.println("❌ messageNotLogin error: " + e.getMessage());
+                e.printStackTrace();
                 mySession.disconnect();
                 Logger.logException(Controller.class, e);
             }
         }
     }
 
-    public void messageNotMap(ISession _session, Message _msg) {
+    public void messageNotMap(MySession _session, Message _msg) {
         if (_msg != null && _session instanceof MySession) {
             MySession mySession = (MySession) _session;
             Player player = mySession.player;
@@ -768,6 +795,7 @@ public class Controller implements IMessageHandler {
                 byte cmd = _msg.reader().readByte();
                 switch (cmd) {
                     case 2:
+                        System.out.println("📥 setClientType");
                         createChar(mySession, _msg);
                         break;
                     case 6:
@@ -846,7 +874,7 @@ public class Controller implements IMessageHandler {
         }
     }
 
-    public void messageSubCommand(ISession _session, Message _msg) {
+    public void messageSubCommand(MySession _session, Message _msg) {
         if (_msg != null && _session instanceof MySession) {
             MySession mySession = (MySession) _session;
             Player player = mySession.player;
@@ -972,99 +1000,5 @@ public class Controller implements IMessageHandler {
             player.getSession().finishUpdate = true;
         }
     }
-    // ⭐ THÊM METHOD MỚI: Handle messages for NettySession
-    private void handleNettySession(nro.models.network.netty.NettySession session, Message _msg) {
-        try {
-            Player player = session.player;
-            byte cmd = _msg.command;
-            
-            switch (cmd) {
-                case -27:
-                    // Send key
-                    session.sendKey();
-                    // DataGame.sendVersionRes cần MySession, skip tạm thời
-                    break;
-                    
-                case -29:
-                    // Login messages
-                    messageNotLoginNetty(session, _msg);
-                    break;
-                    
-                case -28:
-                    // Not map messages
-                    messageNotMapNetty(session, _msg);
-                    break;
-                    
-                // Các commands khác xử lý với player
-                default:
-                    if (player != null) {
-                        // Xử lý các commands chung (không cần MySession)
-                        processCommonCommands(session, player, cmd, _msg);
-                    }
-                    break;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            _msg.cleanup();
-            _msg.dispose();
-        }
-    }
-    
-    // Process common commands (không cần MySession)
-    private void processCommonCommands(ISession session, Player player, byte cmd, Message _msg) {
-        try {
-            switch (cmd) {
-                case -100:
-                    // Shop ký gửi
-                    if (player == null) return;
-                    if (TransactionService.gI().check(player)) {
-                        Service.gI().sendThongBao(player, "Không thể thực hiện");
-                        return;
-                    }
-                    // ... rest of logic
-                    break;
-                    
-                // Thêm các commands khác tại đây
-                // Copy từ onMessage() nhưng bỏ các dòng cần _session
-                    
-                default:
-                    break;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
-    // Login handler for NettySession
-    private void messageNotLoginNetty(nro.models.network.netty.NettySession session, Message msg) {
-        if (msg != null) {
-            try {
-                byte cmd = msg.reader().readByte();
-                switch (cmd) {
-                    case 0:
-                        // Login
-                        String username = msg.reader().readUTF();
-                        String password = msg.reader().readUTF();
-                        session.login(username, password);
-                        break;
-                    case 2:
-                        // Set client type - skip
-                        break;
-                    default:
-                        break;
-                }
-            } catch (IOException e) {
-                session.disconnect();
-                Logger.logException(Controller.class, e);
-            }
-        }
-    }
-    
-    // Not map handler for NettySession
-    private void messageNotMapNetty(nro.models.network.netty.NettySession session, Message _msg) {
-        // TODO: Implement khi cần
-    }
 }
-
 
