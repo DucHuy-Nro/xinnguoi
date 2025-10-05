@@ -36,6 +36,11 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                 System.out.println("📤 Sending session key...");
                 session.sendKey();
                 System.out.println("✅ Key sent!");
+                
+                // Gửi version info ngay sau key
+                System.out.println("📤 Sending version info...");
+                nro.models.data.DataGame.sendVersionRes(session);
+                System.out.println("✅ Version info sent!");
             } catch (Exception ex) {
                 Logger.error("❌ Error sending key: " + ex.getMessage());
                 ex.printStackTrace();

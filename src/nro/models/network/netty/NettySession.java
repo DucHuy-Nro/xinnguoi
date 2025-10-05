@@ -26,6 +26,12 @@ public class NettySession extends MySession {
         return super.getSendCollect();
     }
     
+    // Override sendKey để tự xử lý (không qua MyKeyHandler)
+    @Override
+    public void sendKey() throws Exception {
+        sendSessionKey();
+    }
+    
     @Override
     public void sendMessage(Message msg) {
         if (ctx != null && ctx.channel().isActive()) {
