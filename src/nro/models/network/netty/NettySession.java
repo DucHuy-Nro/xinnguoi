@@ -13,17 +13,28 @@ import nro.models.network.MySession;
 public class NettySession extends MySession {
     
     private final ChannelHandlerContext ctx;
+    private final NettyMessageSendCollect nettySendCollect;
     
     public NettySession(ChannelHandlerContext ctx) {
         super(null); // Không cần Socket
         this.ctx = ctx;
         this.ipAddress = extractIP(ctx);
+        
+        // Tạo NettyMessageSendCollect riêng cho session này
+        this.nettySendCollect = new NettyMessageSendCollect();
     }
     
-    // Override để lấy sendCollect từ parent
+    // Override để trả về NettyMessageSendCollect
     @Override
     public nro.models.interfaces.IMessageSendCollect getSendCollect() {
-        return super.getSendCollect();
+        return this.nettySendCollect;
+    }
+    
+    // Override setSendCollect để dùng NettyMessageSendCollect
+    @Override
+    public nro.models.interfaces.ISession setSendCollect(nro.models.interfaces.IMessageSendCollect collect) {
+        // Ignore collect param, dùng nettySendCollect
+        return this;
     }
     
     // Override sendKey để tự xử lý (không qua MyKeyHandler)
