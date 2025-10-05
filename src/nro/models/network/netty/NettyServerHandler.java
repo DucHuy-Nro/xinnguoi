@@ -55,31 +55,25 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
-        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
-
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
 
         if (session == null) {
-            System.out.println("❌ HANDLER: Session is null!");
             return;
         }
         
-        // ⭐ QUAN TRỌNG: Set sentKey=true NGAY khi thấy cmd=-27!
-        // Phải set TRƯỚC KHI Decoder decode message tiếp theo!
+        // Set sentKey=true khi nhận cmd=-27
         if (msg.command == -27 && !session.sentKey()) {
-            System.out.println("⚠️ HANDLER: cmd=-27, setting sentKey=true BEFORE next decode!");
             session.setSentKey(true);
         }
 
-        if (session.getQueueHandler() == null) {
-            System.out.println("❌ HANDLER: QueueHandler is null!");
-            return;
-        }
-
         try {
-            session.getQueueHandler().addMessage(msg);
+            // ⭐ XỬ LÝ TRỰC TIẾP! KHÔNG QUA QUEUE!
+            // EventLoop thread xử lý luôn!
+            if (session.messageHandler != null) {
+                session.messageHandler.onMessage(session, msg);
+            }
         } catch (Exception e) {
-            System.out.println("❌ HANDLER: Error - " + e.getMessage());
+            Logger.error("❌ Error processing: " + e.getMessage());
             e.printStackTrace();
         }
     }

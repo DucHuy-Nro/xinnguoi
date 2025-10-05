@@ -55,6 +55,10 @@ public class ServerManager {
 
     public static String timeStart;
     public static final Map<Object, Object> CLIENTS = new HashMap<>();
+    
+    // ⭐ SHARED ScheduledExecutor cho TẤT CẢ players!
+    public static final java.util.concurrent.ScheduledExecutorService PLAYER_UPDATER = 
+        java.util.concurrent.Executors.newScheduledThreadPool(4); // Chỉ 4 threads cho 1000 players!
     public static String NAME_SERVER = "Ngọc Rồng Onlime";
     public static String DOMAIN = "Server 1";
     public static String NAME = "Ngọc Rồng Online";
@@ -100,15 +104,14 @@ public class ServerManager {
             isRunning = true;
             activeServerSocket();
 
-            // ⭐ TỐI ƯU: Comment các threads không cần thiết!
-            // Chỉ giữ threads cần thiết cho gameplay cơ bản
+            // ⭐ NETTY CHUẨN: Giảm threads tối đa!
             
             // new Thread(NgocRongNamecService.gI(), "Update NRNM").start();
-            new Thread(SuperRankManager.gI(), "Update Super Rank").start();
+            // new Thread(SuperRankManager.gI(), "Update Super Rank").start();
             // new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
             // new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
             // new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
-            new Thread(ShenronEventManager.gI(), "Update Shenron").start();
+            // new Thread(ShenronEventManager.gI(), "Update Shenron").start();
 
             BossManager.gI().loadBoss();
             Manager.MAPS.forEach(nro.models.map.Map::initBoss);
@@ -190,33 +193,52 @@ public class ServerManager {
 
     public void activeServerSocket() {
         try {
-            Network.gI().init().setAcceptHandler(new ISessionAcceptHandler() {
-                @Override
-                public void sessionInit(ISession is) {
-                    String ip = is.getIP();
-                    if (AntiDDoSService.isBlocked(ip)) {
-                        is.disconnect();
-                        return;
-                    }
-                    is.setMessageHandler(Controller.gI())
-                            .setSendCollect(new MessageSendCollect())
-                            .setKeyHandler(new MyKeyHandler())
-                            .startCollect().startQueueHandler();
-                }
+            Logger.success("✅ NETTY CHUẨN - 0 threads/client!");
+            
+            new Thread(() -> {
+                try {
+                    nro.models.network.netty.NettyServer nettyServer = 
+                        new nro.models.network.netty.NettyServer(PORT);
+                    
+                    nettyServer.setAcceptHandler(new ISessionAcceptHandler() {
+                        @Override
+                        public void sessionInit(ISession is) {
+                            String ip = is.getIP();
+                            if (AntiDDoSService.isBlocked(ip)) {
+                                is.disconnect();
+                                return;
+                            }
+                            // Set handlers NHƯNG KHÔNG start threads!
+                            is.setMessageHandler(Controller.gI())
+                              .setSendCollect(new MessageSendCollect())
+                              .setKeyHandler(new MyKeyHandler());
+                            // KHÔNG GỌI .startQueueHandler()!
+                        }
 
-                @Override
-                public void sessionDisconnect(ISession session) {
-                    Client.gI().kickSession((MySession) session);
-                    disconnect((MySession) session);
+                        @Override
+                        public void sessionDisconnect(ISession session) {
+                            try {
+                                if (session instanceof MySession) {
+                                    MySession mySession = (MySession) session;
+                                    Client.gI().kickSession(mySession);
+                                    disconnect(mySession);
+                                }
+                            } catch (Exception e) {
+                                Logger.error("Error disconnect: " + e.getMessage());
+                            }
+                        }
+                    });
+                    
+                    nettyServer.start();
+                    
+                } catch (Exception e) {
+                    Logger.error("❌ Netty error: " + e.getMessage());
+                    e.printStackTrace();
                 }
-            }).setTypeSessionClone(MySession.class)
-                    .setDoSomeThingWhenClose(() -> {
-                        Logger.error("SERVER CLOSE\n");
-                        System.exit(0);
-                    })
-                    .start(PORT);
+            }, "NettyServerThread").start();
+            
         } catch (Exception e) {
-            Logger.error("Lỗi khi khởi động máy chủ: " + e.getMessage());
+            Logger.error("Lỗi: " + e.getMessage());
         }
     }
 
