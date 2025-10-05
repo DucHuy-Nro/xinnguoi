@@ -74,8 +74,6 @@ public class Controller implements IMessageHandler {
     @Override
     public void onMessage(ISession s, Message _msg) {
         long st = System.currentTimeMillis();
-        
-        // Cast ISession -> MySession (NettySession extends MySession nên OK!)
         MySession _session = (MySession) s;
         Player player = null;
         try {
