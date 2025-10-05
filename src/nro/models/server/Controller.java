@@ -745,17 +745,25 @@ public class Controller implements IMessageHandler {
         if (msg != null) {
             try {
                 byte cmd = msg.reader().readByte();
+                System.out.println("📥 messageNotLogin: subCmd=" + cmd);
                 switch (cmd) {
                     case 0:
-                        session.login(msg.reader().readUTF(), msg.reader().readUTF());
+                        String user = msg.reader().readUTF();
+                        String pass = msg.reader().readUTF();
+                        System.out.println("📥 Login: user=" + user);
+                        session.login(user, pass);
                         break;
                     case 2:
+                        System.out.println("📥 setClientType");
                         Service.gI().setClientType(session, msg);
                         break;
                     default:
+                        System.out.println("⚠️ Unknown subCmd: " + cmd);
                         break;
                 }
             } catch (IOException e) {
+                System.out.println("❌ messageNotLogin error: " + e.getMessage());
+                e.printStackTrace();
                 session.disconnect();
                 Logger.logException(Controller.class, e);
             }
