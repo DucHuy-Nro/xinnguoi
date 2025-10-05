@@ -15,6 +15,15 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
     private int curR = 0;
     private int curW = 0;
     
+    // Getter/Setter cho Decoder rollback
+    public int getCurR() {
+        return curR;
+    }
+    
+    public void setCurR(int curR) {
+        this.curR = curR;
+    }
+    
     @Override
     public Message readMessage(ISession session, DataInputStream dis) throws Exception {
         // ⭐ BACKUP curR trước khi decode!
@@ -27,8 +36,6 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
                 cmd = readKey(session, cmd);
             }
             
-            System.out.println("🔍 CMD=" + cmd);
-            
             int size;
             if (session.sentKey()) {
                 byte b1 = dis.readByte();
@@ -39,12 +46,11 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
             }
             
             int available = dis.available();
-            System.out.println("🔍 SIZE=" + size + ", avail=" + available);
             
             // Check đủ bytes chưa
             if (available < size) {
-                System.out.println("⏳ Not enough! ROLLBACK curR from " + curR + " to " + savedCurR);
-                curR = savedCurR; // ⭐ ROLLBACK curR!
+                // ROLLBACK curR!
+                curR = savedCurR;
                 return null;
             }
             
@@ -58,12 +64,10 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
                 }
             }
             
-            System.out.println("✅ ReadMessage success! curR now=" + curR);
             return new Message(cmd, data);
             
         } catch (Exception e) {
-            // Rollback curR nếu có exception
-            System.out.println("❌ ReadMessage exception! ROLLBACK curR from " + curR + " to " + savedCurR);
+            // Rollback curR
             curR = savedCurR;
             throw e;
         }
