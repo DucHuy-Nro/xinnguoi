@@ -187,55 +187,55 @@ public class ServerManager {
         }
     }
 
-    public void activeServerSocket() {
-        try {
-            // ==========================================
-            // ✅ CHỈ DÙNG NETTY (Comment code cũ)
-            // ==========================================
-            Logger.success("✅ ĐANG DÙNG NETTY");
-            new Thread(() -> {
-                try {
-                    nro.models.network.netty.NettyServer nettyServer
-                            = new nro.models.network.netty.NettyServer(PORT);
-                    nettyServer.setAcceptHandler(new ISessionAcceptHandler() {
-                        @Override
-                        public void sessionInit(ISession is) {
-                            String ip = is.getIP();
-                            if (AntiDDoSService.isBlocked(ip)) {
-                                is.disconnect();
-                                return;
-                            }
-                            is.setMessageHandler(Controller.gI())
-                                    .setSendCollect(new MessageSendCollect())
-                                    .setKeyHandler(new MyKeyHandler())
-                                    .startQueueHandler();
+public void activeServerSocket() {
+    try {
+        Logger.success("✅ ĐANG DÙNG NETTY");
+        
+        new Thread(() -> {
+            try {
+                nro.models.network.netty.NettyServer nettyServer = 
+                    new nro.models.network.netty.NettyServer(PORT);
+                
+                nettyServer.setAcceptHandler(new ISessionAcceptHandler() {
+                    @Override
+                    public void sessionInit(ISession is) {
+                        String ip = is.getIP();
+                        if (AntiDDoSService.isBlocked(ip)) {
+                            is.disconnect();
+                            return;
                         }
+                        is.setMessageHandler(Controller.gI())
+                                .setSendCollect(new MessageSendCollect())
+                                .setKeyHandler(new MyKeyHandler())
+                                .startQueueHandler();
+                    }
 
-                        @Override
-                        public void sessionDisconnect(ISession session) {
-                            // FIX ClassCastException: Không cast sang MySession!
-                            try {
-                                if (session instanceof MySession) {
-                                    MySession mySession = (MySession) session;
-                                    Client.gI().kickSession(mySession);
-                                    disconnect(mySession);
-                                }
-                                // NettySession tự cleanup, không cần làm gì
-                            } catch (Exception e) {
-                                Logger.error("Error disconnect: " + e.getMessage());
+                    @Override
+                    public void sessionDisconnect(ISession session) {
+                        try {
+                            if (session instanceof MySession) {
+                                MySession mySession = (MySession) session;
+                                Client.gI().kickSession(mySession);
+                                disconnect(mySession);
                             }
+                        } catch (Exception e) {
+                            Logger.error("Error disconnect: " + e.getMessage());
                         }
-                    });
-                    nettyServer.start();
-                } catch (Exception e) {
-                    Logger.error("❌ Lỗi Netty: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }, "NettyServerThread").start();
-        } catch (Exception e) {
-            Logger.error("Lỗi khởi động: " + e.getMessage());
-        }
+                    }
+                });
+                
+                nettyServer.start();
+                
+            } catch (Exception e) {
+                Logger.error("❌ Lỗi Netty: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }, "NettyServerThread").start();
+        
+    } catch (Exception e) {
+        Logger.error("Lỗi khởi động: " + e.getMessage());
     }
+}
 
     private boolean canConnectWithIp(String ipAddress) {
         Object o = CLIENTS.get(ipAddress);
