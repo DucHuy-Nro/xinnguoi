@@ -75,21 +75,8 @@ public class Controller implements IMessageHandler {
     public void onMessage(ISession s, Message _msg) {
         long st = System.currentTimeMillis();
         
-        // Cast an toàn ISession -> MySession
-        MySession _session = null;
-        if (s instanceof MySession) {
-            _session = (MySession) s;
-        } else if (s instanceof nro.models.network.netty.NettySession) {
-            // NettySession không có các fields của MySession
-            // Cần wrap hoặc skip các methods cần MySession
-            handleNettySession((nro.models.network.netty.NettySession) s, _msg);
-            return;
-        }
-        
-        if (_session == null) {
-            return;
-        }
-        
+        // Cast ISession -> MySession (NettySession extends MySession nên OK!)
+        MySession _session = (MySession) s;
         Player player = null;
         try {
             player = _session.player;
