@@ -9,8 +9,7 @@ import java.io.*;
 import java.util.List;
 
 /**
- * Decoder đơn giản - KHÔNG dùng MessageSendCollect
- * Đọc plain binary, để MessageHandler xử lý encryption
+ * Decoder với MessageSendCollect (xử lý encryption)
  */
 public class NettyMessageDecoder extends ByteToMessageDecoder {
     
@@ -18,51 +17,56 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        // Cần ít nhất 3 bytes: [cmd:1][size:2]
-        int readable = in.readableBytes();
-        if (readable < 3) {
+        NettySession session = ctx.channel().attr(SESSION_KEY).get();
+        
+        if (session == null) {
             return;
         }
         
-        System.out.println("📥 DECODER: Readable=" + readable + " bytes");
-        
-        // Mark position
-        in.markReaderIndex();
+        // Đợi có sendCollect (set trong sessionInit)
+        if (session.getSendCollect() == null) {
+            return;
+        }
         
         try {
-            // Đọc header
-            byte cmd = in.readByte();
-            int size = in.readUnsignedShort();
-            
-            System.out.println("📥 DECODER: cmd=" + cmd + ", size=" + size);
-            
-            // Validate size
-            if (size < 0 || size > 1024 * 1024) {
-                System.out.println("❌ DECODER: Invalid size!");
-                ctx.close();
+            int readable = in.readableBytes();
+            if (readable == 0) {
                 return;
             }
             
-            // Check nếu đủ data
-            if (in.readableBytes() < size) {
-                System.out.println("⏳ DECODER: Not enough data, waiting...");
+            System.out.println("📥 V3 DECODER: Processing " + readable + " bytes");
+            
+            // Chuyển ByteBuf → byte array
+            byte[] buffer = new byte[readable];
+            in.markReaderIndex();
+            in.readBytes(buffer);
+            
+            // Tạo DataInputStream
+            ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+            DataInputStream dis = new DataInputStream(bais);
+            
+            // Dùng MessageSendCollect.readMessage() (có handle encryption!)
+            Message msg = session.getSendCollect().readMessage(session, dis);
+            
+            if (msg != null) {
+                // Tính bytes consumed
+                int consumed = readable - dis.available();
+                
+                // Reset và skip
                 in.resetReaderIndex();
-                return;
+                in.skipBytes(consumed);
+                
+                out.add(msg);
+                System.out.println("✅ V3 DECODER: Success! cmd=" + msg.command);
+            } else {
+                // Rollback
+                in.resetReaderIndex();
+                System.out.println("⏳ V3 DECODER: Not complete yet");
             }
-            
-            // Đọc data
-            byte[] data = new byte[size];
-            in.readBytes(data);
-            
-            // Tạo message
-            Message message = new Message(cmd, data);
-            out.add(message);
-            
-            System.out.println("✅ DECODER: Message decoded successfully");
             
         } catch (Exception e) {
-            System.out.println("❌ DECODER: Error - " + e.getMessage());
             in.resetReaderIndex();
+            System.out.println("❌ V3 DECODER: " + e.getMessage());
         }
     }
 }
