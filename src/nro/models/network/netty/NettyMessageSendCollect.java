@@ -32,6 +32,11 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
             size = dis.readUnsignedShort();
         }
         
+        // Check đủ bytes chưa
+        if (dis.available() < size) {
+            return null; // Chưa đủ data, chờ thêm
+        }
+        
         byte[] data = new byte[size];
         if (size > 0) {
             dis.readFully(data);
