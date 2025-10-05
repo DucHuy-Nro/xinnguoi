@@ -69,18 +69,17 @@ public class MySession extends Session {
     public boolean finishUpdate;
 
     // Thêm field cho Netty
-    private IMessageSendCollect sendCollect;
+private nro.models.interfaces.IMessageSendCollect sendCollect;
 
-    @Override
-    public ISession setSendCollect(IMessageSendCollect collect) {
-        this.sendCollect = collect;
-        return super.setSendCollect(collect);
-    }
+@Override
+public ISession setSendCollect(nro.models.interfaces.IMessageSendCollect collect) {
+    this.sendCollect = collect;
+    return super.setSendCollect(collect);
+}
 
-    public IMessageSendCollect getSendCollect() {
-        return this.sendCollect;
-    }
-
+public nro.models.interfaces.IMessageSendCollect getSendCollect() {
+    return this.sendCollect;
+}
     public MySession(Socket socket) {
         super(socket);
        if (socket != null) {

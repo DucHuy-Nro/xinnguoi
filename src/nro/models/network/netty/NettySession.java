@@ -17,7 +17,10 @@ public class NettySession extends nro.models.network.MySession {
         this.ctx = ctx;
         this.ipAddress = extractIP(ctx);
     }
-    
+    @Override
+public nro.models.interfaces.IMessageSendCollect getSendCollect() {
+    return super.getSendCollect();
+}
     @Override
     public void sendMessage(Message msg) {
         if (ctx != null && ctx.channel().isActive()) {
