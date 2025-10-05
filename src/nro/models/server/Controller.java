@@ -628,8 +628,16 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -27:
-                    _session.sendKey();
-                    DataGame.sendVersionRes((ISession) _session);
+                    System.out.println("📥 Controller: Processing cmd=-27");
+                    try {
+                        _session.sendKey();
+                        System.out.println("✅ sendKey() done");
+                        DataGame.sendVersionRes((ISession) _session);
+                        System.out.println("✅ sendVersionRes() done");
+                    } catch (Exception ex) {
+                        System.out.println("❌ Error in cmd=-27: " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
                     break;
                 case -111:
                     DataGame.sendDataImageVersion(_session);
