@@ -31,10 +31,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                 acceptHandler.sessionInit(session);
             }
 
-            // Gửi session key ngay
+            // Gửi session key TRỰC TIẾP (không qua encoder!)
             try {
-                System.out.println("📤 Sending session key...");
-                session.sendKey();
+                System.out.println("📤 Sending session key DIRECT...");
+                sendSessionKeyDirect(ctx, session);
                 System.out.println("✅ Key sent! Waiting for client reply...");
                 // Version info sẽ được gửi trong Controller khi nhận cmd=-27
             } catch (Exception ex) {
@@ -131,5 +131,36 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             address = address.substring(0, colonIndex);
         }
         return address;
+    }
+    
+    // Gửi session key trực tiếp (KHÔNG qua encoder pipeline!)
+    private void sendSessionKeyDirect(ChannelHandlerContext ctx, NettySession session) {
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            java.io.DataOutputStream dos = new java.io.DataOutputStream(baos);
+            
+            byte[] keys = session.getKey();
+            
+            // Write PLAIN (chưa có encryption!)
+            dos.writeByte(-27);  // cmd
+            dos.writeShort(keys.length + 1);  // size
+            dos.writeByte(keys.length);  // key length
+            dos.writeByte(keys[0]);
+            for (int i = 1; i < keys.length; i++) {
+                dos.writeByte(keys[i] ^ keys[i - 1]);
+            }
+            
+            byte[] data = baos.toByteArray();
+            
+            // Gửi trực tiếp qua channel (bypass encoder!)
+            io.netty.buffer.ByteBuf buf = ctx.alloc().buffer(data.length);
+            buf.writeBytes(data);
+            ctx.writeAndFlush(buf);
+            
+            session.setSentKey(true);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
