@@ -100,15 +100,14 @@ public class ServerManager {
             isRunning = true;
             activeServerSocket();
 
-            // Gửi các nhiệm vụ cập nhật theo từng dịch vụ
-            new Thread(NgocRongNamecService.gI(), "Update NRNM").start();
+            // ⭐ TỐI ƯU: Comment các threads không cần thiết!
+            // Chỉ giữ threads cần thiết cho gameplay cơ bản
+            
+            // new Thread(NgocRongNamecService.gI(), "Update NRNM").start();
             new Thread(SuperRankManager.gI(), "Update Super Rank").start();
-            new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
-            new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
-            new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
-            // new Thread(AutoMaintenance.gI(), "Update Bảo Trì Tự Động").start();
-            // AutoMaintenance.AutoMaintenance = true;
-            // AutoMaintenance.gI().start();
+            // new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
+            // new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
+            // new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
             new Thread(ShenronEventManager.gI(), "Update Shenron").start();
 
             BossManager.gI().loadBoss();
@@ -116,23 +115,25 @@ public class ServerManager {
             EventManager.gI().init();
 
             new Thread(BossManager.gI(), "Update boss").start();
-            new Thread(YardartManager.gI(), "Update yardart boss").start();
-            new Thread(FinalBossManager.gI(), "Update final boss").start();
-            new Thread(SkillSummonedManager.gI(), "Update skill-summoned boss").start();
-            new Thread(BrolyManager.gI(), "Update broly boss").start();
-            new Thread(OtherBossManager.gI(), "Update other boss").start();
-            new Thread(RedRibbonHQManager.gI(), "Update red ribbon hq boss").start();
-            new Thread(TreasureUnderSeaManager.gI(), "Update treasure under sea boss").start();
-            new Thread(SnakeWayManager.gI(), "Update snake way boss").start();
-            new Thread(GasDestroyManager.gI(), "Update gas destroy boss").start();
+            // new Thread(YardartManager.gI(), "Update yardart boss").start();
+            // new Thread(FinalBossManager.gI(), "Update final boss").start();
+            // new Thread(SkillSummonedManager.gI(), "Update skill-summoned boss").start();
+            // new Thread(BrolyManager.gI(), "Update broly boss").start();
+            // new Thread(OtherBossManager.gI(), "Update other boss").start();
+            // new Thread(RedRibbonHQManager.gI(), "Update red ribbon hq boss").start();
+            // new Thread(TreasureUnderSeaManager.gI(), "Update treasure under sea boss").start();
+            // new Thread(SnakeWayManager.gI(), "Update snake way boss").start();
+            // new Thread(GasDestroyManager.gI(), "Update gas destroy boss").start();
 
-            new Thread(BotManager.gI(), "Thread Bot Game").start();
-            new Thread(ChonAiDay_Gem.gI(), "Thread MiniGame").start();
-            new Thread(ChonAiDay_Gold.gI(), "Thread MiniGame").start();
-            new Thread(ConSoMayManGold.gI(), "ConSoMayManGoldThread").start();
-            new Thread(ConSoMayManGem.gI(), "ConSoMayManGemThread").start();
+            // new Thread(BotManager.gI(), "Thread Bot Game").start();
+            // new Thread(ChonAiDay_Gem.gI(), "Thread MiniGame").start();
+            // new Thread(ChonAiDay_Gold.gI(), "Thread MiniGame").start();
+            // new Thread(ConSoMayManGold.gI(), "ConSoMayManGoldThread").start();
+            // new Thread(ConSoMayManGem.gI(), "ConSoMayManGemThread").start();
 
             startTopUpdater();
+            
+            Logger.success("✅ Server optimized! Disabled 18 unused threads!");
         } catch (Exception e) {
             Logger.logException(this.getClass(), e);
         }
