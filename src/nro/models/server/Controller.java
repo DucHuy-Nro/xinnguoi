@@ -76,9 +76,15 @@ public class Controller implements IMessageHandler {
         long st = System.currentTimeMillis();
         MySession _session = (MySession) s;  // NettySession extends MySession
         Player player = null;
+        
+        System.out.println("🎮 onMessage: cmd=" + _msg.command + ", player=" + (player != null ? player.name : "null"));
+        
         try {
             player = _session.player;
             byte cmd = _msg.command;
+            
+            System.out.println("🎮 Switch: cmd=" + cmd + ", player=" + (player != null ? "exists" : "null"));
+            
             switch (cmd) {
                 case -100:
                     if (player == null) {
