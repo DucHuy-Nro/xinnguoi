@@ -19,9 +19,13 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
     public Message readMessage(ISession session, DataInputStream dis) throws Exception {
         byte cmd = dis.readByte();
         
+        System.out.println("🔍 ReadMessage: raw cmd=" + cmd + ", sentKey=" + session.sentKey());
+        
         if (session.sentKey()) {
             cmd = readKey(session, cmd);
         }
+        
+        System.out.println("🔍 ReadMessage: decrypted cmd=" + cmd);
         
         int size;
         if (session.sentKey()) {
@@ -32,8 +36,12 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
             size = dis.readUnsignedShort();
         }
         
+        int available = dis.available();
+        System.out.println("🔍 ReadMessage: size=" + size + ", available=" + available);
+        
         // Check đủ bytes chưa
-        if (dis.available() < size) {
+        if (available < size) {
+            System.out.println("⏳ Not enough: need " + size + ", have " + available);
             return null; // Chưa đủ data, chờ thêm
         }
         
