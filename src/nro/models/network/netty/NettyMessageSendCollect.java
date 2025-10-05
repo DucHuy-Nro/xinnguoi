@@ -76,23 +76,48 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
     @Override
     public void doSendMessage(ISession session, DataOutputStream dos, Message msg) throws IOException {
         byte[] data = msg.getData();
+        byte cmd = msg.command;
         
+        // Write cmd
         if (session.sentKey()) {
-            dos.writeByte(writeKey(session, msg.command));
-            
-            int size = data.length;
-            byte b1 = (byte) (size >> 8);
-            byte b2 = (byte) (size & 0xFF);
-            dos.writeByte(writeKey(session, b1));
-            dos.writeByte(writeKey(session, b2));
-            
-            for (byte b : data) {
-                dos.writeByte(writeKey(session, b));
+            dos.writeByte(writeKey(session, cmd));
+        } else {
+            dos.writeByte(cmd);
+        }
+        
+        // Write size
+        int size = data != null ? data.length : 0;
+        
+        // Special commands với 3-byte size
+        if (cmd == -32 || cmd == -66 || cmd == -74 || cmd == 11 || cmd == -67 || cmd == -87 || cmd == 66 || cmd == 12) {
+            if (session.sentKey()) {
+                dos.writeByte(writeKey(session, (byte) size) - 128);
+                dos.writeByte(writeKey(session, (byte) (size >> 8)) - 128);
+                dos.writeByte(writeKey(session, (byte) (size >> 16)) - 128);
+            } else {
+                dos.writeByte((byte) size);
+                dos.writeByte((byte) (size >> 8));
+                dos.writeByte((byte) (size >> 16));
             }
         } else {
-            dos.writeByte(msg.command);
-            dos.writeShort(data.length);
-            dos.write(data);
+            // Normal 2-byte size
+            if (session.sentKey()) {
+                dos.writeByte(writeKey(session, (byte) (size >> 8)));
+                dos.writeByte(writeKey(session, (byte) (size & 0xFF)));
+            } else {
+                dos.writeShort(size);
+            }
+        }
+        
+        // Write data
+        if (data != null && size > 0) {
+            if (session.sentKey()) {
+                for (int i = 0; i < data.length; i++) {
+                    dos.writeByte(writeKey(session, data[i]));
+                }
+            } else {
+                dos.write(data);
+            }
         }
         
         dos.flush();
