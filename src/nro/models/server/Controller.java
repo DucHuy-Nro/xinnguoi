@@ -658,7 +658,14 @@ public class Controller implements IMessageHandler {
                     messageNotMap(_session, _msg);
                     break;
                 case -29:
-                    messageNotLogin(_session, _msg);
+                    System.out.println("📥 Controller: case -29, calling messageNotLogin...");
+                    try {
+                        messageNotLogin(_session, _msg);
+                        System.out.println("✅ messageNotLogin returned");
+                    } catch (Exception ex) {
+                        System.out.println("❌ Exception in messageNotLogin: " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
                     break;
                 case -30:
                     messageSubCommand(_session, _msg);
