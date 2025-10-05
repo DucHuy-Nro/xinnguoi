@@ -65,6 +65,9 @@ public class MySession extends Session {
     public int luotquay;
 
     public boolean finishUpdate;
+    
+    // Thêm field cho Netty
+    private nro.models.interfaces.IMessageSendCollect sendCollect;
 
     public MySession(Socket socket) {
         super(socket);
