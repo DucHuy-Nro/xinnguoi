@@ -636,14 +636,16 @@ public class Controller implements IMessageHandler {
                 case -27:
                     System.out.println("📥 Controller: Processing cmd=-27, sentKey=" + _session.sentKey());
                     try {
-                        // Client đã reply key → Giờ mới set sentKey=true!
+                        // Client đã reply key → Set sentKey=true
                         if (!_session.sentKey()) {
                             System.out.println("⚠️ First time receiving -27, setting sentKey=true");
                             _session.setSentKey(true);
                         }
                         
-                        _session.sendKey();
-                        System.out.println("✅ sendKey() done");
+                        // KHÔNG GỌI sendKey() nữa! Key đã gửi rồi!
+                        // _session.sendKey();
+                        
+                        System.out.println("📤 Sending version info...");
                         DataGame.sendVersionRes((ISession) _session);
                         System.out.println("✅ sendVersionRes() done");
                     } catch (Exception ex) {
