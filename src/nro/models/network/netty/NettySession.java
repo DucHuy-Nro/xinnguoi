@@ -8,8 +8,7 @@ import nro.models.network.QueueHandler;
 
 /**
  * Netty Session - Thay thế cho Session.java
- * 
- * Implement ISession để tương thích 100% với code cũ
+ * * Implement ISession để tương thích 100% với code cũ
  */
 public class NettySession implements ISession {
     
@@ -131,15 +130,44 @@ public class NettySession implements ISession {
     
     @Override
     public void sendKey() throws Exception {
-        if (keyHandler != null) {
-            keyHandler.sendKey(this);
+        // Tự gửi session key, không qua keyHandler để tránh cast
+        sendSessionKey();
+    }
+
+    // Thêm method này (mới)
+    public void sendSessionKey() {
+        Message msg = new Message(-27);
+        try {
+            byte[] sessionKeys = this.keys;
+            msg.writer().writeByte(sessionKeys.length);
+            msg.writer().writeByte(sessionKeys[0]);
+            for (int i = 1; i < sessionKeys.length; i++) {
+                msg.writer().writeByte(sessionKeys[i] ^ sessionKeys[i - 1]);
+            }
+            this.sendMessage(msg);
+            msg.cleanup();
+            this.sentKey = true;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
-    
+
     @Override
     public void setKey(Message msg) throws Exception {
-        if (keyHandler != null) {
-            keyHandler.setKey(this, msg);
+        // Tự xử lý set key, không qua keyHandler
+        try {
+            byte keyLength = msg.reader().readByte();
+            byte[] newKeys = new byte[keyLength];
+            for (int i = 0; i < keyLength; i++) {
+                newKeys[i] = msg.reader().readByte();
+                if (i > 0) {
+                    newKeys[i] = (byte) (newKeys[i - 1] ^ newKeys[i]);
+                }
+            }
+            this.keys = newKeys;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
     
@@ -191,6 +219,6 @@ public class NettySession implements ISession {
         return address;
     }
     public IMessageSendCollect getSendCollect() {
-    return sendCollect;
-}
+        return sendCollect;
+    }
 }

@@ -6,18 +6,17 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import nro.models.network.Message;
 
 /**
- * Encode Message → ByteBuf
- * 
- * Protocol format: [cmd:1byte][size:2bytes][data:size bytes]
+ * Encoder đơn giản: Message → ByteBuf
+ * Format: [cmd:1byte][size:2bytes][data:nbytes]
  */
-public class MessageEncoder extends MessageToByteEncoder<Message> {
+public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
     
     @Override
     protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) {
         try {
             byte[] data = msg.getData();
             
-            // Write protocol: [cmd][size][data]
+            // Write: [cmd][size][data]
             out.writeByte(msg.command);
             out.writeShort(data.length);
             

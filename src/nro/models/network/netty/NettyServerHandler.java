@@ -3,7 +3,7 @@ package nro.models.network.netty;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.AttributeKey;  // ← IMPORT NÀY!
+import io.netty.util.AttributeKey;
 import nro.models.interfaces.ISessionAcceptHandler;
 import nro.models.network.Message;
 import nro.models.utils.Logger;
@@ -23,18 +23,29 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         String ip = getClientIP(ctx);
         
         try {
+            // Tạo session
             NettySession session = new NettySession(ctx);
             ctx.channel().attr(SESSION_KEY).set(session);
             
+            // Init session (set handlers)
             if (acceptHandler != null) {
                 acceptHandler.sessionInit(session);
             }
             
-            // Đổi Logger.info() thành Logger.warning() hoặc success()
-            Logger.warning("🟢 Client connected: " + ip + " (ID: " + session.getID() + ")");
+            // ⭐ QUAN TRỌNG: Gửi session key ngay sau init!
+            try {
+                session.sendKey();
+            } catch (Exception e) {
+                Logger.error("❌ Error sending key: " + e.getMessage());
+                ctx.close();
+                return;
+            }
+            
+            Logger.warning("🟢 Client connected & key sent: " + ip + " (ID: " + session.getID() + ")");
             
         } catch (Exception e) {
             Logger.error("❌ Error initializing session for " + ip + ": " + e.getMessage());
+            e.printStackTrace();
             ctx.close();
         }
     }
@@ -43,14 +54,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
         
-        if (session != null && session.getMessageHandler() != null) {
+        if (session != null && session.getQueueHandler() != null) {
             try {
-                if (session.getQueueHandler() != null) {
-                    session.getQueueHandler().addMessage(msg);
-                } else {
-                    session.getMessageHandler().onMessage(session, msg);
-                    msg.cleanup();
-                }
+                // Thêm message vào queue để xử lý
+                session.getQueueHandler().addMessage(msg);
             } catch (Exception e) {
                 Logger.error("❌ Error processing message: " + e.getMessage());
             }
@@ -63,7 +70,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         
         if (session != null) {
             String ip = session.getIP();
-            // Đổi Logger.info() thành Logger.warning()
             Logger.warning("🔴 Client disconnected: " + ip + " (ID: " + session.getID() + ")");
             
             if (acceptHandler != null) {
@@ -105,7 +111,6 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         }
         
         Logger.error("❌ Channel error: " + cause.getMessage());
-        cause.printStackTrace();
         
         ctx.close();
     }
