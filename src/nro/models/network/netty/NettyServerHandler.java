@@ -157,7 +157,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             buf.writeBytes(data);
             ctx.writeAndFlush(buf);
             
-            session.setSentKey(true);
+            // KHÔNG SET sentKey=true ở đây!
+            // Sẽ set trong Controller khi nhận cmd=-27 từ client
+            // session.setSentKey(true);
             
         } catch (Exception e) {
             e.printStackTrace();

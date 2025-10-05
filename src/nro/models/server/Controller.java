@@ -628,8 +628,14 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -27:
-                    System.out.println("📥 Controller: Processing cmd=-27");
+                    System.out.println("📥 Controller: Processing cmd=-27, sentKey=" + _session.sentKey());
                     try {
+                        // Client đã reply key → Giờ mới set sentKey=true!
+                        if (!_session.sentKey()) {
+                            System.out.println("⚠️ First time receiving -27, setting sentKey=true");
+                            _session.setSentKey(true);
+                        }
+                        
                         _session.sendKey();
                         System.out.println("✅ sendKey() done");
                         DataGame.sendVersionRes((ISession) _session);
