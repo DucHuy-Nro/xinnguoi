@@ -28,13 +28,16 @@ public class QueueHandler implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("🚀 QUEUE: Started for session " + session.getID());
         try {
             while (session != null && session.isConnected()) {
                 if (messages != null) {
                     Message message = messages.poll(5, TimeUnit.SECONDS);
                     if (message != null) {
+                        System.out.println("⚙️ QUEUE: Processing message cmd=" + message.command);
                         this.messageHandler.onMessage(this.session, message);
                         message.cleanup();
+                        System.out.println("✅ QUEUE: Message processed");
                     }
                 } else {
                     System.err.println("WARNING: QueueHandler.messages is null");
@@ -44,13 +47,17 @@ public class QueueHandler implements Runnable {
                 TimeUnit.MILLISECONDS.sleep(33); // ~30 FPS
             }
         } catch (Exception e) {
+            System.out.println("❌ QUEUE: Error - " + e.getMessage());
+            e.printStackTrace();
         }
+        System.out.println("🛑 QUEUE: Stopped");
     }
 
     public void addMessage(Message msg) {
         try {
             if (session.isConnected() && messages.size() < 500) {
                 messages.add(msg);
+                System.out.println("✅ HANDLER: Message added to queue");
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -56,6 +56,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
         
+        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
+        
         if (session != null && session.getQueueHandler() != null) {
             try {
                 session.getQueueHandler().addMessage(msg);
