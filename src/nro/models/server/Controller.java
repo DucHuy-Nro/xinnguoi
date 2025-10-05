@@ -74,7 +74,7 @@ public class Controller implements IMessageHandler {
     @Override
     public void onMessage(ISession s, Message _msg) {
         long st = System.currentTimeMillis();
-        MySession _session = (MySession) s;
+        MySession _session = (MySession) s;  // NettySession extends MySession
         Player player = null;
         try {
             player = _session.player;
