@@ -17,45 +17,56 @@ public class NettyMessageSendCollect implements IMessageSendCollect {
     
     @Override
     public Message readMessage(ISession session, DataInputStream dis) throws Exception {
-        byte cmd = dis.readByte();
+        // ⭐ BACKUP curR trước khi decode!
+        int savedCurR = curR;
         
-        System.out.println("🔍 ReadMessage: raw cmd=" + cmd + ", sentKey=" + session.sentKey());
-        
-        if (session.sentKey()) {
-            cmd = readKey(session, cmd);
-        }
-        
-        System.out.println("🔍 ReadMessage: decrypted cmd=" + cmd);
-        
-        int size;
-        if (session.sentKey()) {
-            byte b1 = dis.readByte();
-            byte b2 = dis.readByte();
-            size = ((readKey(session, b1) & 0xFF) << 8) | (readKey(session, b2) & 0xFF);
-        } else {
-            size = dis.readUnsignedShort();
-        }
-        
-        int available = dis.available();
-        System.out.println("🔍 ReadMessage: size=" + size + ", available=" + available);
-        
-        // Check đủ bytes chưa
-        if (available < size) {
-            System.out.println("⏳ Not enough: need " + size + ", have " + available);
-            return null; // Chưa đủ data, chờ thêm
-        }
-        
-        byte[] data = new byte[size];
-        if (size > 0) {
-            dis.readFully(data);
+        try {
+            byte cmd = dis.readByte();
+            
             if (session.sentKey()) {
-                for (int i = 0; i < data.length; i++) {
-                    data[i] = readKey(session, data[i]);
+                cmd = readKey(session, cmd);
+            }
+            
+            System.out.println("🔍 CMD=" + cmd);
+            
+            int size;
+            if (session.sentKey()) {
+                byte b1 = dis.readByte();
+                byte b2 = dis.readByte();
+                size = ((readKey(session, b1) & 0xFF) << 8) | (readKey(session, b2) & 0xFF);
+            } else {
+                size = dis.readUnsignedShort();
+            }
+            
+            int available = dis.available();
+            System.out.println("🔍 SIZE=" + size + ", avail=" + available);
+            
+            // Check đủ bytes chưa
+            if (available < size) {
+                System.out.println("⏳ Not enough! ROLLBACK curR from " + curR + " to " + savedCurR);
+                curR = savedCurR; // ⭐ ROLLBACK curR!
+                return null;
+            }
+            
+            byte[] data = new byte[size];
+            if (size > 0) {
+                dis.readFully(data);
+                if (session.sentKey()) {
+                    for (int i = 0; i < data.length; i++) {
+                        data[i] = readKey(session, data[i]);
+                    }
                 }
             }
+            
+            System.out.println("✅ ReadMessage success! curR now=" + curR);
+            return new Message(cmd, data);
+            
+        } catch (Exception e) {
+            // Rollback curR nếu có exception
+            System.out.println("❌ ReadMessage exception! ROLLBACK curR from " + curR + " to " + savedCurR);
+            curR = savedCurR;
+            throw e;
         }
-        
-        return new Message(cmd, data);
     }
     
     @Override
