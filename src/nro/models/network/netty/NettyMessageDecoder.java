@@ -9,7 +9,8 @@ import java.io.*;
 import java.util.List;
 
 /**
- * Decoder với MessageSendCollect (có encryption)
+ * Decoder đơn giản - KHÔNG dùng MessageSendCollect
+ * Đọc plain binary, để MessageHandler xử lý encryption
  */
 public class NettyMessageDecoder extends ByteToMessageDecoder {
     
@@ -17,50 +18,50 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        NettySession session = ctx.channel().attr(SESSION_KEY).get();
-        
-        // Chờ session được khởi tạo
-        if (session == null || session.getSendCollect() == null) {
+        // Cần ít nhất 3 bytes: [cmd:1][size:2]
+        int readable = in.readableBytes();
+        if (readable < 3) {
             return;
         }
         
+        System.out.println("📥 DECODER: Readable=" + readable + " bytes");
+        
+        // Mark position
+        in.markReaderIndex();
+        
         try {
-            // Đọc số bytes available
-            int readable = in.readableBytes();
-            if (readable < 3) {
-                return; // Cần ít nhất 3 bytes
+            // Đọc header
+            byte cmd = in.readByte();
+            int size = in.readUnsignedShort();
+            
+            System.out.println("📥 DECODER: cmd=" + cmd + ", size=" + size);
+            
+            // Validate size
+            if (size < 0 || size > 1024 * 1024) {
+                System.out.println("❌ DECODER: Invalid size!");
+                ctx.close();
+                return;
             }
             
-            // Mark để có thể rollback
-            in.markReaderIndex();
-            
-            // Đọc vào byte array
-            byte[] buffer = new byte[readable];
-            in.readBytes(buffer);
-            
-            // Tạo InputStream
-            ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
-            DataInputStream dis = new DataInputStream(bais);
-            
-            // Dùng MessageSendCollect để decode (có encryption!)
-            Message msg = session.getSendCollect().readMessage(session, dis);
-            
-            if (msg != null) {
-                // Tính số bytes đã consume
-                int consumed = readable - dis.available();
-                
-                // Reset và skip đúng số bytes
+            // Check nếu đủ data
+            if (in.readableBytes() < size) {
+                System.out.println("⏳ DECODER: Not enough data, waiting...");
                 in.resetReaderIndex();
-                in.skipBytes(consumed);
-                
-                out.add(msg);
-            } else {
-                // Chưa đủ data, rollback
-                in.resetReaderIndex();
+                return;
             }
+            
+            // Đọc data
+            byte[] data = new byte[size];
+            in.readBytes(data);
+            
+            // Tạo message
+            Message message = new Message(cmd, data);
+            out.add(message);
+            
+            System.out.println("✅ DECODER: Message decoded successfully");
             
         } catch (Exception e) {
-            // Rollback nếu lỗi
+            System.out.println("❌ DECODER: Error - " + e.getMessage());
             in.resetReaderIndex();
         }
     }
