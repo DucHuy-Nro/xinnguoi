@@ -1,6 +1,8 @@
 package nro.models.network;
 import java.net.Socket;
 
+import nro.models.interfaces.IMessageSendCollect;
+import nro.models.interfaces.ISession;
 import nro.models.player.Player;
 import nro.models.server.Controller;
 import nro.models.data.DataGame;
@@ -66,10 +68,28 @@ public class MySession extends Session {
 
     public boolean finishUpdate;
 
+    // Thêm field cho Netty
+    private IMessageSendCollect sendCollect;
+
+    @Override
+    public ISession setSendCollect(IMessageSendCollect collect) {
+        this.sendCollect = collect;
+        return super.setSendCollect(collect);
+    }
+
+    public IMessageSendCollect getSendCollect() {
+        return this.sendCollect;
+    }
+
     public MySession(Socket socket) {
         super(socket);
+       if (socket != null) {
         ipAddress = socket.getInetAddress().getHostAddress();
+    } else {
+        // Netty session sẽ set ipAddress sau
+        ipAddress = "0.0.0.0";
     }
+}
 
     @Override
     public void sendKey() throws Exception {
