@@ -8,64 +8,76 @@ import nro.models.interfaces.ISessionAcceptHandler;
 import nro.models.network.Message;
 import nro.models.utils.Logger;
 
+/**
+ * Netty Channel Handler
+ *
+ * Xử lý:
+ * - Connection events (connect, disconnect)
+ * - Message routing
+ * - Timeout
+ * - Errors
+ */
 @ChannelHandler.Sharable
 public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
-    
+
     private static final AttributeKey<NettySession> SESSION_KEY = AttributeKey.valueOf("session");
     private final ISessionAcceptHandler acceptHandler;
-    
+
     public NettyServerHandler(ISessionAcceptHandler acceptHandler) {
         this.acceptHandler = acceptHandler;
     }
-    
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
+        // New connection established
         String ip = getClientIP(ctx);
-        
+
         try {
-            // Tạo session
+            // Create session
             NettySession session = new NettySession(ctx);
             ctx.channel().attr(SESSION_KEY).set(session);
-            
-            // Init session (set handlers)
+
+            // Init session
             if (acceptHandler != null) {
                 acceptHandler.sessionInit(session);
             }
-            
-            // ⭐ QUAN TRỌNG: Gửi session key ngay sau init!
+
+            // ⭐ GỬI SESSION KEY NGAY
             try {
+                System.out.println("📤 Sending session key...");
                 session.sendKey();
-            } catch (Exception e) {
-                Logger.error("❌ Error sending key: " + e.getMessage());
+                System.out.println("✅ Key sent!");
+            } catch (Exception ex) {
+                Logger.error("❌ Error sending key: " + ex.getMessage());
+                ex.printStackTrace();
                 ctx.close();
                 return;
             }
-            
+
             Logger.warning("🟢 Client connected & key sent: " + ip + " (ID: " + session.getID() + ")");
-            
+
         } catch (Exception e) {
             Logger.error("❌ Error initializing session for " + ip + ": " + e.getMessage());
-            e.printStackTrace();
             ctx.close();
         }
     }
-    
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
         System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
-        
+
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
-        
+
         if (session == null) {
             System.out.println("❌ HANDLER: Session is null!");
             return;
         }
-        
+
         if (session.getQueueHandler() == null) {
             System.out.println("❌ HANDLER: QueueHandler is null!");
             return;
         }
-        
+
         try {
             session.getQueueHandler().addMessage(msg);
             System.out.println("✅ HANDLER: Message added to queue");
@@ -74,60 +86,58 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             e.printStackTrace();
         }
     }
-    
+
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
+        // Connection closed
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
-        
+
         if (session != null) {
             String ip = session.getIP();
-            Logger.warning("🔴 Client disconnected: " + ip + " (ID: " + session.getID() + ")");
-            
+            Logger.warning("🔴 Disconnected: " + ip + " (ID: " + session.getID() + ")");
+
+            // Notify accept handler
             if (acceptHandler != null) {
                 acceptHandler.sessionDisconnect(session);
             }
-            
+
+            // Cleanup session
             session.dispose();
         }
-        
+
         ctx.channel().attr(SESSION_KEY).set(null);
     }
-    
+
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof IdleStateEvent) {
-            IdleStateEvent event = (IdleStateEvent) evt;
-            
-            if (event.state() == IdleState.READER_IDLE) {
-                Logger.warning("⏱️ Client idle (no read), closing connection");
-                ctx.close();
-            } else if (event.state() == IdleState.WRITER_IDLE) {
-                Logger.warning("⏱️ Client idle (no write), closing connection");
-                ctx.close();
-            }
+            Logger.warning("⏱️ Timeout, closing");
+            ctx.close();
         }
     }
-    
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        // Handle exceptions
         String message = cause.getMessage();
-        
-        if (message != null && (
-            message.contains("Connection reset") ||
-            message.contains("Broken pipe") ||
-            message.contains("forcibly closed")
-        )) {
+
+        // Ignore common disconnection errors
+        if (message != null && (message.contains("Connection reset") || message.contains("Broken pipe") || message.contains("forcibly closed"))) {
+            // Normal disconnect, just close
             ctx.close();
             return;
         }
-        
-        Logger.error("❌ Channel error: " + cause.getMessage());
-        
+
+        // Log other errors
+        Logger.error("❌ Error: " + cause.getMessage());
+        cause.printStackTrace();
+
         ctx.close();
     }
-    
+
     private String getClientIP(ChannelHandlerContext ctx) {
         String address = ctx.channel().remoteAddress().toString();
+        // Format: /127.0.0.1:12345 → 127.0.0.1
         if (address.startsWith("/")) {
             address = address.substring(1);
         }
@@ -138,3 +148,4 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         return address;
     }
 }
+

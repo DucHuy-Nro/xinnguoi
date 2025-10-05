@@ -2,13 +2,15 @@ package nro.models.network.netty;
 
 import io.netty.channel.ChannelHandlerContext;
 import nro.models.network.Message;
-import nro.models.player.Player;
+import nro.models.network.MySession;
 
 /**
  * NettySession extends MySession
  * Tương thích 100% với code cũ!
+ * 
+ * Chỉ override các methods liên quan đến network I/O
  */
-public class NettySession extends nro.models.network.MySession {
+public class NettySession extends MySession {
     
     private final ChannelHandlerContext ctx;
     
@@ -17,10 +19,13 @@ public class NettySession extends nro.models.network.MySession {
         this.ctx = ctx;
         this.ipAddress = extractIP(ctx);
     }
+    
+    // Override để lấy sendCollect từ parent
     @Override
-public nro.models.interfaces.IMessageSendCollect getSendCollect() {
-    return super.getSendCollect();
-}
+    public nro.models.interfaces.IMessageSendCollect getSendCollect() {
+        return super.getSendCollect();
+    }
+    
     @Override
     public void sendMessage(Message msg) {
         if (ctx != null && ctx.channel().isActive()) {

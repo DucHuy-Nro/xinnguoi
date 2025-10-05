@@ -2,42 +2,71 @@ package nro.models.network.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
-import io.netty.handler.codec.ReplayingDecoder;
+import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.util.AttributeKey;
 import nro.models.network.Message;
+import java.io.*;
 import java.util.List;
 
 /**
- * Decoder tương thích 100% với protocol cũ
- * Đọc: [cmd:1byte][size:2bytes][data:nbytes]
+ * Decoder với MessageSendCollect (xử lý encryption)
  */
-public class NettyMessageDecoder extends ReplayingDecoder<Void> {
+public class NettyMessageDecoder extends ByteToMessageDecoder {
+    
+    private static final AttributeKey<NettySession> SESSION_KEY = AttributeKey.valueOf("session");
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        System.out.println("📥 DECODER: Received " + in.readableBytes() + " bytes");
+        NettySession session = ctx.channel().attr(SESSION_KEY).get();
+        
+        if (session == null) {
+            return;
+        }
+        
+        // Đợi có sendCollect (set trong sessionInit)
+        if (session.getSendCollect() == null) {
+            return;
+        }
         
         try {
-            byte cmd = in.readByte();
-            int size = in.readUnsignedShort();
-            
-            System.out.println("📥 DECODER: cmd=" + cmd + ", size=" + size);
-            
-            if (size < 0 || size > 2 * 1024 * 1024) {
-                System.out.println("❌ DECODER: Invalid size!");
-                ctx.close();
+            int readable = in.readableBytes();
+            if (readable == 0) {
                 return;
             }
             
-            byte[] data = new byte[size];
-            in.readBytes(data);
+            System.out.println("📥 V3 DECODER: Processing " + readable + " bytes");
             
-            Message message = new Message(cmd, data);
-            out.add(message);
+            // Chuyển ByteBuf → byte array
+            byte[] buffer = new byte[readable];
+            in.markReaderIndex();
+            in.readBytes(buffer);
             
-            System.out.println("✅ DECODER: Message decoded successfully");
+            // Tạo DataInputStream
+            ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+            DataInputStream dis = new DataInputStream(bais);
+            
+            // Dùng MessageSendCollect.readMessage() (có handle encryption!)
+            Message msg = session.getSendCollect().readMessage(session, dis);
+            
+            if (msg != null) {
+                // Tính bytes consumed
+                int consumed = readable - dis.available();
+                
+                // Reset và skip
+                in.resetReaderIndex();
+                in.skipBytes(consumed);
+                
+                out.add(msg);
+                System.out.println("✅ V3 DECODER: Success! cmd=" + msg.command);
+            } else {
+                // Rollback
+                in.resetReaderIndex();
+                System.out.println("⏳ V3 DECODER: Not complete yet");
+            }
             
         } catch (Exception e) {
-            System.out.println("❌ DECODER: Error - " + e.getMessage());
+            in.resetReaderIndex();
+            System.out.println("❌ V3 DECODER: " + e.getMessage());
         }
     }
 }
