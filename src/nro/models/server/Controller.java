@@ -636,20 +636,10 @@ public class Controller implements IMessageHandler {
                 case -27:
                     System.out.println("📥 Controller: cmd=-27, sentKey=" + _session.sentKey());
                     try {
-                        // sentKey đã được set trong Handler rồi, giờ gửi data
-                        // -77: SmallVersion
-                        System.out.println("📤 1/3: SmallVersion (-77)");
-                        nro.models.data.DataGame.sendSmallVersion(_session);
-                        
-                        // -93: BgItemVersion
-                        System.out.println("📤 2/3: BgItemVersion (-93)");
-                        nro.models.data.DataGame.sendBgItemVersion(_session);
-                        
-                        // -74: VersionRes
-                        System.out.println("📤 3/3: VersionRes (-74)");
+                        // CHỈ GỬI version info, KHÔNG gửi data!
+                        System.out.println("📤 Sending VersionRes (-74)...");
                         DataGame.sendVersionRes((ISession) _session);
-                        
-                        System.out.println("✅ ALL INIT DATA SENT! Client should load...");
+                        System.out.println("✅ VersionRes sent! Client will request data...");
                     } catch (Exception ex) {
                         System.out.println("❌ Error: " + ex.getMessage());
                         ex.printStackTrace();
