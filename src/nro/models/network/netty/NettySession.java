@@ -1,38 +1,21 @@
 package nro.models.network.netty;
 
 import io.netty.channel.ChannelHandlerContext;
-import nro.models.consts.SocketType;
-import nro.models.interfaces.*;
 import nro.models.network.Message;
-import nro.models.network.QueueHandler;
+import nro.models.player.Player;
 
 /**
- * Netty Session - Thay thế cho Session.java
- * * Implement ISession để tương thích 100% với code cũ
+ * NettySession extends MySession
+ * Tương thích 100% với code cũ!
  */
-public class NettySession implements ISession {
+public class NettySession extends nro.models.network.MySession {
     
-    private static int ID_COUNTER = 0;
-    
-    private final int id;
     private final ChannelHandlerContext ctx;
-    private final String ip;
-    private IMessageHandler messageHandler;
-    private IKeySessionHandler keyHandler;
-    private IMessageSendCollect sendCollect;
-    private QueueHandler queueHandler;
-    private byte[] keys;
-    private boolean sentKey;
     
     public NettySession(ChannelHandlerContext ctx) {
-        this.id = ID_COUNTER++;
+        super(null); // Không cần Socket
         this.ctx = ctx;
-        this.ip = extractIP(ctx);
-        this.keys = "NguyenDucVuEntertainment".getBytes();
-        this.sentKey = false;
-        
-        // Create queue handler (giống Session.java cũ)
-        this.queueHandler = new QueueHandler(this);
+        this.ipAddress = extractIP(ctx);
     }
     
     @Override
@@ -55,160 +38,17 @@ public class NettySession implements ISession {
     }
     
     @Override
-    public void dispose() {
-        if (queueHandler != null) {
-            queueHandler.dispose();
-            queueHandler = null;
-        }
-        messageHandler = null;
-        keyHandler = null;
-        sendCollect = null;
-        keys = null;
-    }
-    
-    @Override
-    public String getIP() {
-        return ip;
-    }
-    
-    @Override
-    public long getID() {
-        return id;
-    }
-    
-    @Override
     public boolean isConnected() {
         return ctx != null && ctx.channel().isActive();
     }
     
     @Override
-    public ISession setSendCollect(IMessageSendCollect collect) {
-        this.sendCollect = collect;
-        return this;
-    }
-    
-    @Override
-    public ISession setMessageHandler(IMessageHandler handler) {
-        this.messageHandler = handler;
-        if (queueHandler != null) {
-            queueHandler.setMessageHandler(handler);
-        }
-        return this;
-    }
-    
-    @Override
-    public ISession setKeyHandler(IKeySessionHandler handler) {
-        this.keyHandler = handler;
-        return this;
-    }
-    
-    @Override
-    public ISession startSend() {
-        // Netty handles this automatically
-        return this;
-    }
-    
-    @Override
-    public ISession startCollect() {
-        // Netty handles this automatically
-        return this;
-    }
-    
-    @Override
-    public ISession startQueueHandler() {
-        if (queueHandler != null) {
-            new Thread(queueHandler, "QueueHandler-" + id).start();
-        }
-        return this;
-    }
-    
-    @Override
-    public ISession start() {
-        startQueueHandler();
-        return this;
-    }
-    
-    @Override
-    public void sendKey() throws Exception {
-        // Tự gửi session key, không qua keyHandler để tránh cast
-        sendSessionKey();
-    }
-
-    // Thêm method này (mới)
-    public void sendSessionKey() {
-        Message msg = new Message(-27);
-        try {
-            byte[] sessionKeys = this.keys;
-            msg.writer().writeByte(sessionKeys.length);
-            msg.writer().writeByte(sessionKeys[0]);
-            for (int i = 1; i < sessionKeys.length; i++) {
-                msg.writer().writeByte(sessionKeys[i] ^ sessionKeys[i - 1]);
-            }
-            this.sendMessage(msg);
-            msg.cleanup();
-            this.sentKey = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void setKey(Message msg) throws Exception {
-        // Tự xử lý set key, không qua keyHandler
-        try {
-            byte keyLength = msg.reader().readByte();
-            byte[] newKeys = new byte[keyLength];
-            for (int i = 0; i < keyLength; i++) {
-                newKeys[i] = msg.reader().readByte();
-                if (i > 0) {
-                    newKeys[i] = (byte) (newKeys[i - 1] ^ newKeys[i]);
-                }
-            }
-            this.keys = newKeys;
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-    
-    @Override
-    public void setKey(byte[] keys) {
-        this.keys = keys;
-    }
-    
-    @Override
-    public byte[] getKey() {
-        return keys;
-    }
-    
-    @Override
-    public boolean sentKey() {
-        return sentKey;
-    }
-    
-    @Override
-    public void setSentKey(boolean sent) {
-        this.sentKey = sent;
-    }
-    
-    @Override
-    public SocketType getSocketType() {
-        return SocketType.SERVER;
-    }
-    
-    @Override
-    public QueueHandler getQueueHandler() {
-        return queueHandler;
-    }
-    
-    // Thêm method này (bị thiếu!)
-    public IMessageHandler getMessageHandler() {
-        return messageHandler;
+    public String getIP() {
+        return ipAddress;
     }
     
     private String extractIP(ChannelHandlerContext ctx) {
         String address = ctx.channel().remoteAddress().toString();
-        // Format: /127.0.0.1:12345 → 127.0.0.1
         if (address.startsWith("/")) {
             address = address.substring(1);
         }
@@ -217,8 +57,5 @@ public class NettySession implements ISession {
             address = address.substring(0, colonIndex);
         }
         return address;
-    }
-    public IMessageSendCollect getSendCollect() {
-        return sendCollect;
     }
 }

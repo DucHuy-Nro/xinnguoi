@@ -41,6 +41,7 @@ import nro.models.shop.ShopService;
 import nro.models.interfaces.IMessageHandler;
 import nro.models.network.Message;
 import nro.models.interfaces.ISession;
+import nro.models.network.netty.NettySession;
 import nro.models.services_dungeon.BlackBallWarService;
 import nro.models.matches.dai_hoi_vo_thuat.SuperRankService;
 import nro.models.services_dungeon.TrainingService;
@@ -64,6 +65,17 @@ public class Controller implements IMessageHandler {
 
     private static Controller instance;
 
+    // Helper method to get player from ISession
+    private Player getPlayer(ISession session) {
+        if (session instanceof MySession) {
+            return ((MySession) session).player;
+        } else if (session instanceof nro.models.network.netty.NettySession) {
+            // This assumes NettySession has a public 'player' field.
+            return ((nro.models.network.netty.NettySession) session).player;
+        }
+        return null;
+    }
+
     public static Controller gI() {
         if (instance == null) {
             instance = new Controller();
@@ -71,15 +83,15 @@ public class Controller implements IMessageHandler {
         return instance;
     }
 
-    @Override
-    public void onMessage(ISession s, Message _msg) {
-        long st = System.currentTimeMillis();
-        MySession _session = (MySession) s;
-        Player player = null;
-        try {
-            player = _session.player;
-            byte cmd = _msg.command;
-            switch (cmd) {
+ @Override
+public void onMessage(ISession s, Message _msg) {
+    long st = System.currentTimeMillis();
+    MySession _session = (MySession) s;
+    Player player = null;
+    try {
+        player = _session.player;
+        byte cmd = _msg.command;
+        switch (cmd) {
                 case -100:
                     if (player == null) {
                         return;
@@ -194,8 +206,9 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case 42:
-//                    //Đăng ký tài khoản nhanh
-                    Service.gI().regisAccount(_session, _msg);
+                    if (s instanceof MySession) {
+                        Service.gI().regisAccount((MySession) s, _msg);
+                    }
                     break;
                 case -127:
                     if (player != null) {
@@ -370,7 +383,9 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -101:
-                    login2(_session, _msg);
+                    if (s instanceof MySession) {
+                        login2((MySession) s, _msg);
+                    }
                     break;
                 case -103:
                     if (player != null) {
@@ -398,14 +413,14 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -74:
-                    String ip = _session.ipAddress;
+                    String ip = s.getIP();
                     Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
                     byte type = _msg.reader().readByte();
-                    if (type == 1) {
-                        DataGame.sendSizeRes(_session);
-                    } else if (type == 2) {
-                        DataGame.sendRes(_session);
-                    }
+                  if (type == 1) {
+    DataGame.sendSizeRes(_session);
+} else if (type == 2) {
+    DataGame.sendRes(_session);
+}
                     break;
                 case -81:
                     if (player != null) {
@@ -421,15 +436,15 @@ public class Controller implements IMessageHandler {
                         }
                     }
                     break;
-                case -87:
-                    DataGame.updateData(_session);
+              case -87:
+    DataGame.updateData(_session);
                     break;
-                case -67:
-                    int id = _msg.reader().readInt();
-                    DataGame.sendIcon(_session, id);
+             case -67:
+    int id = _msg.reader().readInt();
+    DataGame.sendIcon(_session, id);
                     break;
-                case 66:
-                    DataGame.sendImageByName(_session, _msg.reader().readUTF());
+             case 66:
+    DataGame.sendImageByName(_session, _msg.reader().readUTF());
                     break;
                 case -66:
                     if (player != null) {
@@ -457,9 +472,9 @@ public class Controller implements IMessageHandler {
                         FlagBagService.gI().sendIconEffectFlag(player, fbidz);
                     }
                     break;
-                case -32:
-                    int bgId = _msg.reader().readShort();
-                    DataGame.sendItemBGTemplate(_session, bgId);
+               case -32:
+    int bgId = _msg.reader().readShort();
+    DataGame.sendItemBGTemplate(_session, bgId);
                     break;
                 case 22:
                     if (player != null) {
@@ -535,11 +550,11 @@ public class Controller implements IMessageHandler {
                             Service.gI().sendThongBao(player, "Không thể thực hiện");
                             return;
                         }
-                        UseItem.gI().getItem(_session, _msg);
+                       UseItem.gI().getItem(_session, _msg);
                     }
                     break;
-                case -41:
-                    Service.gI().sendCaption(_session, _msg.reader().readByte());
+               case -41:
+    Service.gI().sendCaption(_session, _msg.reader().readByte());
                     break;
                 case -43:
                     if (player != null) {
@@ -571,9 +586,9 @@ public class Controller implements IMessageHandler {
                         ChangeMapService.gI().finishLoadMap(player);
                     }
                     break;
-                case 11:
-                    byte modId = _msg.reader().readByte();
-                    DataGame.requestMobTemplate(_session, modId);
+             case 11:
+    byte modId = _msg.reader().readByte();
+    DataGame.requestMobTemplate(_session, modId);
                     break;
                 case 44:
                     if (player != null) {
@@ -591,10 +606,9 @@ public class Controller implements IMessageHandler {
                         MenuController.gI().doSelectMenu(player, npcId, select);
                     }
                     break;
-                case 33:
-                    if (player != null) {
-                        int npcId = _msg.reader().readShort();
-                        MenuController.gI().openMenuNPC(_session, npcId, player);
+             case 33:
+    if (player != null) {
+        MenuController.gI().openMenuNPC(_session, _msg.reader().readShort(), player);
                     }
                     break;
                 case 34:
@@ -622,12 +636,12 @@ public class Controller implements IMessageHandler {
                         Service.gI().attackPlayer(player, playerId);
                     }
                     break;
-                case -27:
-                    _session.sendKey();
-                    DataGame.sendVersionRes((ISession) _session);
+             case -27:
+    _session.sendKey();
+    DataGame.sendVersionRes(_session);
                     break;
-                case -111:
-                    DataGame.sendDataImageVersion(_session);
+             case -111:
+    DataGame.sendDataImageVersion(_session);
                     break;
                 case -20:
                     if (player != null && !player.isDie()) {
@@ -636,13 +650,13 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -28:
-                    messageNotMap(_session, _msg);
+                    messageNotMap(s, _msg);
                     break;
                 case -29:
-                    messageNotLogin(_session, _msg);
+                    messageNotLogin(s, _msg);
                     break;
                 case -30:
-                    messageSubCommand(_session, _msg);
+                    messageSubCommand(s, _msg);
                     break;
                 case -15: // về nhà
                     if (player != null) {
@@ -722,48 +736,49 @@ public class Controller implements IMessageHandler {
         }
     }
 
-    public void messageNotLogin(MySession session, Message msg) {
-        if (msg != null) {
+    public void messageNotLogin(ISession session, Message msg) {
+        if (msg != null && session instanceof MySession) {
+            MySession mySession = (MySession) session;
             try {
                 byte cmd = msg.reader().readByte();
                 switch (cmd) {
                     case 0:
-                        session.login(msg.reader().readUTF(), msg.reader().readUTF());
+                        mySession.login(msg.reader().readUTF(), msg.reader().readUTF());
                         break;
                     case 2:
-                        Service.gI().setClientType(session, msg);
+                        Service.gI().setClientType(mySession, msg);
                         break;
                     default:
                         break;
                 }
             } catch (IOException e) {
-                session.disconnect();
+                mySession.disconnect();
                 Logger.logException(Controller.class, e);
             }
         }
     }
 
-    public void messageNotMap(MySession _session, Message _msg) {
-        if (_msg != null) {
-            Player player = null;
+    public void messageNotMap(ISession _session, Message _msg) {
+        if (_msg != null && _session instanceof MySession) {
+            MySession mySession = (MySession) _session;
+            Player player = mySession.player;
             try {
-                player = _session.player;
                 byte cmd = _msg.reader().readByte();
                 switch (cmd) {
                     case 2:
-                        createChar(_session, _msg);
+                        createChar(mySession, _msg);
                         break;
                     case 6:
-                        DataGame.updateMap(_session);
+                        DataGame.updateMap(mySession);
                         break;
                     case 7:
-                        DataGame.updateSkill(_session);
+                        DataGame.updateSkill(mySession);
                         break;
                     case 8:
-                        ItemData.updateItem(_session);
+                        ItemData.updateItem(mySession);
                         break;
                     case 10:
-                        DataGame.sendMapTemp(_session, _msg.reader().readUnsignedByte());
+                        DataGame.sendMapTemp(mySession, _msg.reader().readUnsignedByte());
                         break;
                     case 13:
                         //client ok
@@ -829,11 +844,11 @@ public class Controller implements IMessageHandler {
         }
     }
 
-    public void messageSubCommand(MySession _session, Message _msg) {
-        if (_msg != null) {
-            Player player = null;
+    public void messageSubCommand(ISession _session, Message _msg) {
+        if (_msg != null && _session instanceof MySession) {
+            MySession mySession = (MySession) _session;
+            Player player = mySession.player;
             try {
-                player = _session.player;
                 byte command = _msg.reader().readByte();
                 switch (command) {
                     case 16:
@@ -868,8 +883,9 @@ public class Controller implements IMessageHandler {
                 + "\nChi tiết xem tại diễn đàn, fanpage.");
     }
 
-    public void createChar(MySession session, Message msg) {
-        if (!Maintenance.isRunning) {
+    public void createChar(ISession session, Message msg) {
+        if (!Maintenance.isRunning && session instanceof MySession) {
+            MySession mySession = (MySession) session;
             LocalResultSet rs = null;
             boolean created = false;
             try {
@@ -879,26 +895,26 @@ public class Controller implements IMessageHandler {
                 if (name.length() >= 5 && name.length() <= 10) {
                     rs = LocalManager.executeQuery("select * from player where name = ?", name);
                     if (rs.first()) {
-                        Service.gI().sendThongBaoOK(session, "Tên nhân vật đã tồn tại");
+                        Service.gI().sendThongBaoOK(mySession, "Tên nhân vật đã tồn tại");
                     } else {
                         if (Util.haveSpecialCharacter(name)) {
-                            Service.gI().sendThongBaoOK(session, "Tên nhân vật không được chứa ký tự đặc biệt");
+                            Service.gI().sendThongBaoOK(mySession, "Tên nhân vật không được chứa ký tự đặc biệt");
                         } else {
                             boolean isNotIgnoreName = true;
                             for (String n : ConstIgnoreName.IGNORE_NAME) {
                                 if (name.equals(n)) {
-                                    Service.gI().sendThongBaoOK(session, "Tên nhân vật đã tồn tại");
+                                    Service.gI().sendThongBaoOK(mySession, "Tên nhân vật đã tồn tại");
                                     isNotIgnoreName = false;
                                     break;
                                 }
                             }
                             if (isNotIgnoreName) {
-                                created = PlayerDAO.createNewPlayer(session.userId, name.toLowerCase(), (byte) gender, hair);
+                                created = PlayerDAO.createNewPlayer(mySession.userId, name.toLowerCase(), (byte) gender, hair);
                             }
                         }
                     }
                 } else {
-                    Service.gI().sendThongBaoOK(session, "Tên nhân vật chỉ đồng ý các ký tự a-z, 0-9 và chiều dài từ 5 đến 10 ký tự");
+                    Service.gI().sendThongBaoOK(mySession, "Tên nhân vật chỉ đồng ý các ký tự a-z, 0-9 và chiều dài từ 5 đến 10 ký tự");
                 }
             } catch (Exception e) {
                 Logger.logException(Controller.class, e);
@@ -908,7 +924,7 @@ public class Controller implements IMessageHandler {
                 }
             }
             if (created) {
-                session.login(session.uu, session.pp);
+                mySession.login(mySession.uu, mySession.pp);
             }
         }
     }

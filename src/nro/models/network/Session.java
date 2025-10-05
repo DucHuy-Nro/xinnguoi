@@ -52,26 +52,42 @@ public class Session implements ISession {
         this.KEYS = "NguyenDucVuEntertainment".getBytes();
         this.id = ID_INIT++;
         this.socket = socket;
-        try {
-            this.socket.setSendBufferSize(0x100000);
-            this.socket.setReceiveBufferSize(0x100000);
-        } catch (SocketException e) {
-            e.printStackTrace();
+
+        // Null check cho Netty
+        if (socket != null) {
+            try {
+                this.socket.setSendBufferSize(0x100000);
+                this.socket.setReceiveBufferSize(0x100000);
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+            this.socketType = SocketType.SERVER;
+            this.connected = true;
+            this.ip = ((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress().getHostAddress();
+        } else {
+            // Netty session - không cần socket
+            this.socketType = SocketType.SERVER;
+            this.connected = true;
+            this.ip = "0.0.0.0"; // Sẽ được override bởi NettySession
         }
-        this.socketType = SocketType.SERVER;
-        this.connected = true;
-        this.ip = ((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress().getHostAddress();
         initComponents();
     }
 
     private void initComponents() {
-        this.sender = new Sender(this, this.socket);
-        this.collector = new Collector(this, this.socket);
+        // Null check cho Netty
+        if (this.socket != null) {
+            this.sender = new Sender(this, this.socket);
+            this.collector = new Collector(this, this.socket);
+            this.tSender = new Thread(this.sender, "Sender - IP: " + this.ip);
+            this.tCollector = new Thread(this.collector, "Collector - IP: " + this.ip);
+        }
+
+        // QueueHandler luôn cần (cả Netty và old network)
         this.queueHandler = new QueueHandler(this);
 
-        this.tSender = new Thread(this.sender, "Sender - IP: " + this.ip);
-        this.tCollector = new Thread(this.collector, "Collector - IP: " + this.ip);
-        this.tQueueHandler = new Thread(this.queueHandler, "QueueHandler - IP: " + this.ip);
+        if (this.socket != null) {
+            this.tQueueHandler = new Thread(this.queueHandler, "QueueHandler - IP: " + this.ip);
+        }
     }
 
     @Override
@@ -108,7 +124,7 @@ public class Session implements ISession {
 
     @Override
     public ISession startSend() {
-        if (!tSender.isAlive()) {
+        if (tSender != null && !tSender.isAlive()) {
             tSender.start();
         }
         return this;
@@ -116,7 +132,7 @@ public class Session implements ISession {
 
     @Override
     public ISession startCollect() {
-        if (!tCollector.isAlive()) {
+        if (tCollector != null && !tCollector.isAlive()) {
             tCollector.start();
         }
         return this;
@@ -124,7 +140,11 @@ public class Session implements ISession {
 
     @Override
     public ISession startQueueHandler() {
-        if (!tQueueHandler.isAlive()) {
+        if (tQueueHandler != null && !tQueueHandler.isAlive()) {
+            tQueueHandler.start();
+        } else if (queueHandler != null && tQueueHandler == null) {
+            // Netty: Tạo thread mới
+            tQueueHandler = new Thread(queueHandler, "QueueHandler - IP: " + this.ip);
             tQueueHandler.start();
         }
         return this;
