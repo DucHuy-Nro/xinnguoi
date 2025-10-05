@@ -74,7 +74,22 @@ public class Controller implements IMessageHandler {
     @Override
     public void onMessage(ISession s, Message _msg) {
         long st = System.currentTimeMillis();
-        MySession _session = (MySession) s;
+        
+        // Cast an toàn ISession -> MySession
+        MySession _session = null;
+        if (s instanceof MySession) {
+            _session = (MySession) s;
+        } else if (s instanceof nro.models.network.netty.NettySession) {
+            // NettySession không có các fields của MySession
+            // Cần wrap hoặc skip các methods cần MySession
+            handleNettySession((nro.models.network.netty.NettySession) s, _msg);
+            return;
+        }
+        
+        if (_session == null) {
+            return;
+        }
+        
         Player player = null;
         try {
             player = _session.player;
@@ -953,5 +968,99 @@ public class Controller implements IMessageHandler {
         if (player.getSession() != null) {
             player.getSession().finishUpdate = true;
         }
+    }
+    
+    // ⭐ THÊM METHOD MỚI: Handle messages for NettySession
+    private void handleNettySession(nro.models.network.netty.NettySession session, Message _msg) {
+        try {
+            Player player = session.player;
+            byte cmd = _msg.command;
+            
+            switch (cmd) {
+                case -27:
+                    // Send key
+                    session.sendKey();
+                    // DataGame.sendVersionRes cần MySession, skip tạm thời
+                    break;
+                    
+                case -29:
+                    // Login messages
+                    messageNotLoginNetty(session, _msg);
+                    break;
+                    
+                case -28:
+                    // Not map messages
+                    messageNotMapNetty(session, _msg);
+                    break;
+                    
+                // Các commands khác xử lý với player
+                default:
+                    if (player != null) {
+                        // Xử lý các commands chung (không cần MySession)
+                        processCommonCommands(session, player, cmd, _msg);
+                    }
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            _msg.cleanup();
+            _msg.dispose();
+        }
+    }
+    
+    // Process common commands (không cần MySession)
+    private void processCommonCommands(ISession session, Player player, byte cmd, Message _msg) {
+        try {
+            switch (cmd) {
+                case -100:
+                    // Shop ký gửi
+                    if (player == null) return;
+                    if (TransactionService.gI().check(player)) {
+                        Service.gI().sendThongBao(player, "Không thể thực hiện");
+                        return;
+                    }
+                    // ... rest of logic
+                    break;
+                    
+                // Thêm các commands khác tại đây
+                // Copy từ onMessage() nhưng bỏ các dòng cần _session
+                    
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    // Login handler for NettySession
+    private void messageNotLoginNetty(nro.models.network.netty.NettySession session, Message msg) {
+        if (msg != null) {
+            try {
+                byte cmd = msg.reader().readByte();
+                switch (cmd) {
+                    case 0:
+                        // Login
+                        String username = msg.reader().readUTF();
+                        String password = msg.reader().readUTF();
+                        session.login(username, password);
+                        break;
+                    case 2:
+                        // Set client type - skip
+                        break;
+                    default:
+                        break;
+                }
+            } catch (IOException e) {
+                session.disconnect();
+                Logger.logException(Controller.class, e);
+            }
+        }
+    }
+    
+    // Not map handler for NettySession
+    private void messageNotMapNetty(nro.models.network.netty.NettySession session, Message _msg) {
+        // TODO: Implement khi cần
     }
 }

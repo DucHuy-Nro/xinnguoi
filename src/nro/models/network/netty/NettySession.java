@@ -189,4 +189,70 @@ public class NettySession implements ISession {
         }
         return address;
     }
+    
+    // Login method (copy from MySession)
+    public void login(String username, String password) {
+        nro.models.player_system.AntiLogin al = nro.models.player_system.AntiLogin.getByIP(this.ipAddress);
+        if (al == null) {
+            al = new nro.models.player_system.AntiLogin();
+            nro.models.player_system.AntiLogin.putByIP(this.ipAddress, al);
+        }
+        if (!al.canLogin()) {
+            nro.models.services.Service.gI().sendThongBaoOK(this, al.getNotifyCannotLogin());
+            return;
+        }
+        if (nro.models.server.Manager.LOCAL) {
+            nro.models.services.Service.gI().sendThongBaoOK(this, "Server này chỉ để lưu dữ liệu\nVui lòng qua server khác");
+            return;
+        }
+        if (nro.models.server.Maintenance.isRunning) {
+            nro.models.services.Service.gI().sendThongBaoOK(this, "Server đang trong thời gian bảo trì, vui lòng quay lại sau");
+            return;
+        }
+        if (!this.isAdmin && nro.models.server.Client.gI().getPlayers().size() >= nro.models.server.Manager.MAX_PLAYER) {
+            nro.models.services.Service.gI().sendThongBaoOK(this, "Máy chủ hiện đang quá tải, cư dân vui lòng di chuyển sang máy chủ khác.");
+            return;
+        }
+        if (this.player == null) {
+            Player pl = null;
+            try {
+                long st = System.currentTimeMillis();
+                this.uu = username;
+                this.pp = password;
+                // Tạm thời dùng reflection hoặc skip login
+                // pl = nro.models.database.MrBlue.login(this, al);
+                nro.models.utils.Logger.warning("⚠️ Login for NettySession not implemented yet!");
+                if (pl != null) {
+                    this.timeWait = 0;
+                    this.joinedGame = true;
+                    pl.nPoint.calPoint();
+                    pl.nPoint.setHp(pl.nPoint.hp);
+                    pl.nPoint.setMp(pl.nPoint.mp);
+                    pl.zone.addPlayer(pl);
+                    if (pl.pet != null) {
+                        pl.pet.nPoint.calPoint();
+                        pl.pet.nPoint.setHp(pl.pet.nPoint.hp);
+                        pl.pet.nPoint.setMp(pl.pet.nPoint.mp);
+                    }
+
+                    pl.setSession(this);
+                    nro.models.server.Client.gI().put(pl);
+                    this.player = pl;
+                    
+                    nro.models.server.Controller.gI().sendInfo(this);
+                    nro.models.utils.Logger.warning("✅ Login success for player " + this.player.name);
+                    
+                    if (this.player.notify != null && !this.player.notify.equals("null") && !this.player.notify.isEmpty()) {
+                        nro.models.services.Service.gI().sendThongBao(this.player, this.player.notify);
+                        this.player.notify = null;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (pl != null) {
+                    pl.dispose();
+                }
+            }
+        }
+    }
 }
