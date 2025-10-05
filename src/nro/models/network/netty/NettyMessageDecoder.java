@@ -46,7 +46,15 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             DataInputStream dis = new DataInputStream(bais);
             
             // Dùng MessageSendCollect.readMessage() (có handle encryption!)
-            Message msg = session.getSendCollect().readMessage(session, dis);
+            Message msg = null;
+            try {
+                msg = session.getSendCollect().readMessage(session, dis);
+            } catch (Exception ex) {
+                System.out.println("❌ V3 DECODER readMessage exception: " + ex.getMessage());
+                ex.printStackTrace();
+                in.resetReaderIndex();
+                return;
+            }
             
             if (msg != null) {
                 // Tính bytes consumed
@@ -61,12 +69,13 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             } else {
                 // Rollback
                 in.resetReaderIndex();
-                System.out.println("⏳ V3 DECODER: Not complete yet");
+                System.out.println("⏳ V3 DECODER: Message is null, waiting...");
             }
             
         } catch (Exception e) {
             in.resetReaderIndex();
-            System.out.println("❌ V3 DECODER: " + e.getMessage());
+            System.out.println("❌ V3 DECODER outer exception: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
