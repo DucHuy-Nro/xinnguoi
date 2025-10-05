@@ -403,10 +403,15 @@ public class Controller implements IMessageHandler {
                     String ip = _session.ipAddress;
                     Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
                     byte type = _msg.reader().readByte();
+                    System.out.println("📥 CMD -74: type=" + type + ", session=" + _session.getClass().getSimpleName());
                     if (type == 1) {
+                        System.out.println("📤 Calling sendSizeRes...");
                         DataGame.sendSizeRes(_session);
+                        System.out.println("✅ sendSizeRes done");
                     } else if (type == 2) {
+                        System.out.println("📤 Calling sendRes...");
                         DataGame.sendRes(_session);
+                        System.out.println("✅ sendRes done");
                     }
                     break;
                 case -81:
