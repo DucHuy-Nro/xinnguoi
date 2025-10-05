@@ -405,17 +405,17 @@ public class Controller implements IMessageHandler {
                     break;
                 case -74:
                     String ip = _session.ipAddress;
-                    Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
+                    Logger.warning("✨ Địa chỉ " + ip + " đang tải dữ liệu!\n");
                     byte type = _msg.reader().readByte();
-                    System.out.println("📥 CMD -74: type=" + type + ", session=" + _session.getClass().getSimpleName());
+                    System.out.println("📥 ✨ CMD -74 (LOAD DATA REQUEST): type=" + type);
                     if (type == 1) {
-                        System.out.println("📤 Calling sendSizeRes...");
+                        System.out.println("📤 Sending data SIZE list...");
                         DataGame.sendSizeRes(_session);
-                        System.out.println("✅ sendSizeRes done");
+                        System.out.println("✅ Data size sent! Client will request actual data...");
                     } else if (type == 2) {
-                        System.out.println("📤 Calling sendRes...");
+                        System.out.println("📤 Sending ACTUAL data...");
                         DataGame.sendRes(_session);
-                        System.out.println("✅ sendRes done");
+                        System.out.println("✅ ACTUAL DATA SENT! Client loading...");
                     }
                     break;
                 case -81:
