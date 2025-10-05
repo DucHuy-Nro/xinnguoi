@@ -31,7 +31,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                 acceptHandler.sessionInit(session);
             }
             
-            // ⭐ GỬI SESSION KEY NGAY
+            // Gửi session key ngay sau khi init
             try {
                 System.out.println("📤 Sending session key...");
                 session.sendKey();
@@ -46,7 +46,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             Logger.warning("🟢 Client connected & key sent: " + ip + " (ID: " + session.getID() + ")");
             
         } catch (Exception e) {
-            Logger.error("❌ Error initializing: " + e.getMessage());
+            Logger.error("❌ Error: " + e.getMessage());
             e.printStackTrace();
             ctx.close();
         }
