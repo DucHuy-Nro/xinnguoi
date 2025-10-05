@@ -78,7 +78,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         
         if (session != null) {
             String ip = session.getIP();
-            Logger.info("🔴 Client disconnected: " + ip + " (ID: " + session.getID() + ")");
+            Logger.warning("🔴 Client disconnected: " + ip + " (ID: " + session.getID() + ")");
             
             // Notify accept handler
             if (acceptHandler != null) {
