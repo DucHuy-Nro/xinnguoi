@@ -404,17 +404,17 @@ public void onMessage(ISession s, Message _msg) {
                     break;
                 case -74:
                     String ip = s.getIP();
-                    Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
+Logger.warning("✨ Địa chỉ " + ip + " đang tải dữ liệu!\n");
                     byte type = _msg.reader().readByte();
-                    System.out.println("📥 CMD -74: type=" + type + ", session=" + _session.getClass().getSimpleName());
+                    System.out.println("📥 ✨ CMD -74 (LOAD DATA REQUEST): type=" + type);
                     if (type == 1) {
-                        System.out.println("📤 Calling sendSizeRes...");
+                       System.out.println("📤 Sending data SIZE list...");
                         DataGame.sendSizeRes(_session);
-                        System.out.println("✅ sendSizeRes done");
+                        System.out.println("✅ Data size sent! Client will request actual data...");
                     } else if (type == 2) {
-                        System.out.println("📤 Calling sendRes...");
+                        System.out.println("📤 Sending ACTUAL data...");
                         DataGame.sendRes(_session);
-                        System.out.println("✅ sendRes done");
+                       System.out.println("✅ ACTUAL DATA SENT! Client loading...");
                     }
                     break;
                 case -81:
@@ -636,20 +636,11 @@ public void onMessage(ISession s, Message _msg) {
                     try {
                         
                         
-                       // sentKey đã được set trong Handler rồi, giờ gửi data
-                        // -77: SmallVersion
-                        System.out.println("📤 1/3: SmallVersion (-77)");
-                        nro.models.data.DataGame.sendSmallVersion(_session);
-
-                        // -93: BgItemVersion
-                        System.out.println("📤 2/3: BgItemVersion (-93)");
-                        nro.models.data.DataGame.sendBgItemVersion(_session);
-
-                        // -74: VersionRes
-                        System.out.println("📤 3/3: VersionRes (-74)");
+                   // CHỈ GỬI version info, KHÔNG gửi data!
+                        System.out.println("📤 Sending VersionRes (-74)...");
                         DataGame.sendVersionRes((ISession) _session);
 
-                        System.out.println("✅ ALL INIT DATA SENT! Client should load...");
+                        System.out.println("✅ VersionRes sent! Client will request data...");
                     } catch (Exception ex) {
                          System.out.println("❌ Error: " + ex.getMessage());
                         ex.printStackTrace();

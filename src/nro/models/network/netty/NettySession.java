@@ -34,7 +34,11 @@ public class NettySession extends MySession {
     @Override
     public void sendMessage(Message msg) {
         if (ctx != null && ctx.channel().isActive()) {
-            ctx.writeAndFlush(msg);
+            ctx.writeAndFlush(msg).addListener((io.netty.channel.ChannelFutureListener) future -> {
+                if (!future.isSuccess()) {
+                    System.out.println("❌ Write FAILED for cmd=" + msg.command + ": " + future.cause().getMessage());
+                }
+            });
         }
     }
     
