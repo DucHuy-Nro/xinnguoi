@@ -52,15 +52,26 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
+        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
+        
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
         
-        if (session != null && session.getQueueHandler() != null) {
-            try {
-                // Thêm message vào queue để xử lý
-                session.getQueueHandler().addMessage(msg);
-            } catch (Exception e) {
-                Logger.error("❌ Error processing message: " + e.getMessage());
-            }
+        if (session == null) {
+            System.out.println("❌ HANDLER: Session is null!");
+            return;
+        }
+        
+        if (session.getQueueHandler() == null) {
+            System.out.println("❌ HANDLER: QueueHandler is null!");
+            return;
+        }
+        
+        try {
+            session.getQueueHandler().addMessage(msg);
+            System.out.println("✅ HANDLER: Message added to queue");
+        } catch (Exception e) {
+            System.out.println("❌ HANDLER: Error - " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

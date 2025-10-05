@@ -14,29 +14,30 @@ public class NettyMessageDecoder extends ReplayingDecoder<Void> {
     
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
+        System.out.println("📥 DECODER: Received " + in.readableBytes() + " bytes");
+        
         try {
-            // Đọc cmd (1 byte)
             byte cmd = in.readByte();
-            
-            // Đọc size (2 bytes, unsigned short)
             int size = in.readUnsignedShort();
             
-            // Validate size
+            System.out.println("📥 DECODER: cmd=" + cmd + ", size=" + size);
+            
             if (size < 0 || size > 2 * 1024 * 1024) {
+                System.out.println("❌ DECODER: Invalid size!");
                 ctx.close();
                 return;
             }
             
-            // Đọc data
             byte[] data = new byte[size];
             in.readBytes(data);
             
-            // Tạo Message (dùng constructor với data)
             Message message = new Message(cmd, data);
             out.add(message);
             
+            System.out.println("✅ DECODER: Message decoded successfully");
+            
         } catch (Exception e) {
-            // ReplayingDecoder tự động rollback nếu chưa đủ data
+            System.out.println("❌ DECODER: Error - " + e.getMessage());
         }
     }
 }

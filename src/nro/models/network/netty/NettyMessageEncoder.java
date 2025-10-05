@@ -13,10 +13,11 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
     
     @Override
     protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) {
+        System.out.println("📤 ENCODER: Encoding message cmd=" + msg.command);
+        
         try {
             byte[] data = msg.getData();
             
-            // Write: [cmd][size][data]
             out.writeByte(msg.command);
             out.writeShort(data.length);
             
@@ -24,7 +25,10 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
                 out.writeBytes(data);
             }
             
+            System.out.println("✅ ENCODER: Message encoded, size=" + (data.length + 3));
+            
         } catch (Exception e) {
+            System.out.println("❌ ENCODER: Error - " + e.getMessage());
             e.printStackTrace();
             ctx.close();
         }
