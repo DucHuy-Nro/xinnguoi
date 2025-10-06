@@ -33,13 +33,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
             // Gửi session key TRỰC TIẾP (không qua encoder!)
             try {
-                System.out.println("📤 Sending session key DIRECT...");
                 sendSessionKeyDirect(ctx, session);
-                System.out.println("✅ Key sent! Waiting for client reply...");
-                // Version info sẽ được gửi trong Controller khi nhận cmd=-27
             } catch (Exception ex) {
                 Logger.error("❌ Error sending key: " + ex.getMessage());
-                ex.printStackTrace();
                 ctx.close();
                 return;
             }

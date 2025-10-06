@@ -401,17 +401,12 @@ public class Controller implements IMessageHandler {
                     break;
                 case -74:
                     String ip = _session.ipAddress;
-                    Logger.warning("✨ Địa chỉ " + ip + " đang tải dữ liệu!\n");
+                    Logger.warning("Địa chỉ " + ip + " đang tải dữ liệu\n");
                     byte type = _msg.reader().readByte();
-                    System.out.println("📥 ✨ CMD -74 (LOAD DATA REQUEST): type=" + type);
                     if (type == 1) {
-                        System.out.println("📤 Sending data SIZE list...");
                         DataGame.sendSizeRes(_session);
-                        System.out.println("✅ Data size sent! Client will request actual data...");
                     } else if (type == 2) {
-                        System.out.println("📤 Sending ACTUAL data...");
                         DataGame.sendRes(_session);
-                        System.out.println("✅ ACTUAL DATA SENT! Client loading...");
                     }
                     break;
                 case -81:
@@ -630,14 +625,9 @@ public class Controller implements IMessageHandler {
                     }
                     break;
                 case -27:
-                    System.out.println("📥 Controller: cmd=-27, sentKey=" + _session.sentKey());
                     try {
-                        // CHỈ GỬI version info, KHÔNG gửi data!
-                        System.out.println("📤 Sending VersionRes (-74)...");
                         DataGame.sendVersionRes((ISession) _session);
-                        System.out.println("✅ VersionRes sent! Client will request data...");
                     } catch (Exception ex) {
-                        System.out.println("❌ Error: " + ex.getMessage());
                         ex.printStackTrace();
                     }
                     break;
@@ -654,14 +644,7 @@ public class Controller implements IMessageHandler {
                     messageNotMap(_session, _msg);
                     break;
                 case -29:
-                    System.out.println("📥 Controller: case -29, calling messageNotLogin...");
-                    try {
-                        messageNotLogin(_session, _msg);
-                        System.out.println("✅ messageNotLogin returned");
-                    } catch (Exception ex) {
-                        System.out.println("❌ Exception in messageNotLogin: " + ex.getMessage());
-                        ex.printStackTrace();
-                    }
+                    messageNotLogin(_session, _msg);
                     break;
                 case -30:
                     messageSubCommand(_session, _msg);
@@ -748,25 +731,17 @@ public class Controller implements IMessageHandler {
         if (msg != null) {
             try {
                 byte cmd = msg.reader().readByte();
-                System.out.println("📥 messageNotLogin: subCmd=" + cmd);
                 switch (cmd) {
                     case 0:
-                        String user = msg.reader().readUTF();
-                        String pass = msg.reader().readUTF();
-                        System.out.println("📥 Login: user=" + user);
-                        session.login(user, pass);  // MySession has login() method
+                        session.login(msg.reader().readUTF(), msg.reader().readUTF());
                         break;
                     case 2:
-                        System.out.println("📥 setClientType");
                         Service.gI().setClientType(session, msg);
                         break;
                     default:
-                        System.out.println("⚠️ Unknown subCmd: " + cmd);
                         break;
                 }
             } catch (IOException e) {
-                System.out.println("❌ messageNotLogin error: " + e.getMessage());
-                e.printStackTrace();
                 session.disconnect();
                 Logger.logException(Controller.class, e);
             }

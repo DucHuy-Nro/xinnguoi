@@ -19,15 +19,12 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
         
         byte[] originalData = msg.getData();
-        System.out.println("📤 ENCODER: cmd=" + msg.command + ", dataLen=" + originalData.length + ", sentKey=" + (session != null ? session.sentKey() : "null"));
         
         if (session == null || session.getSendCollect() == null) {
-            // Plain
             try {
                 out.writeByte(msg.command);
                 out.writeShort(originalData.length);
                 out.writeBytes(originalData);
-                System.out.println("📤 ENCODER: PLAIN mode");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -43,17 +40,7 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
             byte[] encoded = baos.toByteArray();
             out.writeBytes(encoded);
             
-            System.out.println("📤 ENCODER: ENCRYPTED, totalSize=" + encoded.length + " (was " + originalData.length + ")");
-            
-            // Log first 10 bytes để debug
-            StringBuilder hex = new StringBuilder();
-            for (int i = 0; i < Math.min(10, encoded.length); i++) {
-                hex.append(String.format("%02X ", encoded[i]));
-            }
-            System.out.println("   First bytes: " + hex.toString());
-            
         } catch (Exception e) {
-            System.out.println("❌ ENCODER exception: " + e.getMessage());
             e.printStackTrace();
         }
     }

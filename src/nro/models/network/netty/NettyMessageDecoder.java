@@ -8,7 +8,7 @@ import nro.models.network.Message;
 import java.util.List;
 
 /**
- * Decoder đọc TRỰC TIẾP từ ByteBuf (KHÔNG qua InputStream)
+ * Decoder - Không logs, sạch sẽ
  */
 public class NettyMessageDecoder extends ByteToMessageDecoder {
     
@@ -22,28 +22,20 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             return;
         }
         
-        // Cần ít nhất 3 bytes
         if (in.readableBytes() < 3) {
             return;
         }
         
-        System.out.println("📥 DECODER: " + in.readableBytes() + " bytes, sentKey=" + session.sentKey());
-        
-        // ⭐ BACKUP curR
         int savedCurR = ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).getCurR();
         
         in.markReaderIndex();
         
         try {
-            // Đọc cmd từ ByteBuf
             byte cmd = in.readByte();
             if (session.sentKey()) {
                 cmd = session.getSendCollect().readKey(session, cmd);
             }
             
-            System.out.println("🔍 CMD=" + cmd);
-            
-            // Đọc size
             int size;
             if (session.sentKey()) {
                 byte b1 = in.readByte();
@@ -55,18 +47,12 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
                 size = in.readUnsignedShort();
             }
             
-            System.out.println("🔍 SIZE=" + size + ", avail=" + in.readableBytes());
-            
-            // Check đủ bytes
             if (in.readableBytes() < size) {
-                System.out.println("⏳ Not enough! Rollback curR: " + savedCurR);
-                // ⭐ ROLLBACK curR
                 ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).setCurR(savedCurR);
                 in.resetReaderIndex();
                 return;
             }
             
-            // Đọc data
             byte[] data = new byte[size];
             in.readBytes(data);
             
@@ -79,11 +65,7 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             Message message = new Message(cmd, data);
             out.add(message);
             
-            System.out.println("✅ DECODED: cmd=" + cmd + ", size=" + size);
-            
         } catch (Exception e) {
-            System.out.println("❌ DECODER: " + e.getMessage());
-            // ⭐ ROLLBACK curR
             ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).setCurR(savedCurR);
             in.resetReaderIndex();
         }
