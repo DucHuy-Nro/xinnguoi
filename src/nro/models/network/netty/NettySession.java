@@ -65,9 +65,6 @@ public class NettySession extends MySession {
     
     @Override
     public void disconnect() {
-        System.out.println("⚠️ NettySession.disconnect() called!");
-        new Exception("Disconnect called from:").printStackTrace();
-        
         if (ctx != null && ctx.channel().isActive()) {
             ctx.close();
         }
