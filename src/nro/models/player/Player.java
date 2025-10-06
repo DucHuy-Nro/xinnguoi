@@ -436,7 +436,10 @@ public class Player implements Runnable {
     }
 
     public void start() {
-        Executors.newSingleThreadExecutor().submit(this, "Update player " + this.name);
+        // ⭐ DÙNG SHARED EXECUTOR! KHÔNG TẠO THREAD MỚI!
+        nro.models.server.ServerManager.PLAYER_UPDATER.scheduleAtFixedRate(
+            this::update, 0, 33, java.util.concurrent.TimeUnit.MILLISECONDS
+        );
     }
 
     public void update() {

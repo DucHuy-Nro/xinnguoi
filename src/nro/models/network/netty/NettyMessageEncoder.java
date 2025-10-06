@@ -18,7 +18,8 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
     protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) {
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
         
-        System.out.println("📤 V3 ENCODER: Encoding cmd=" + msg.command);
+        
+//        System.out.println("📤 V3 ENCODER: Encoding cmd=" + msg.command);
         
         if (session == null || session.getSendCollect() == null) {
             // Plain write (chưa có sendCollect)
@@ -27,7 +28,7 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
                 out.writeByte(msg.command);
                 out.writeShort(data.length);
                 out.writeBytes(data);
-                System.out.println("📤 V3 ENCODER: Plain mode");
+//                System.out.println("📤 V3 ENCODER: Plain mode");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -44,7 +45,7 @@ public class NettyMessageEncoder extends MessageToByteEncoder<Message> {
             byte[] encoded = baos.toByteArray();
             out.writeBytes(encoded);
             
-            System.out.println("📤 V3 ENCODER: Encrypted, size=" + encoded.length);
+//            System.out.println("📤 V3 ENCODER: Encrypted, size=" + encoded.length);
             
         } catch (Exception e) {
             e.printStackTrace();

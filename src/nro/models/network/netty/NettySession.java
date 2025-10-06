@@ -14,6 +14,7 @@ public class NettySession extends MySession {
     
     private final ChannelHandlerContext ctx;
     private final NettyMessageSendCollect nettySendCollect = new NettyMessageSendCollect();
+     public nro.models.interfaces.IMessageHandler messageHandler;
     public NettySession(ChannelHandlerContext ctx) {
         super(null); // Không cần Socket
         this.ctx = ctx;
@@ -26,7 +27,20 @@ public class NettySession extends MySession {
     @Override
     public nro.models.interfaces.IMessageSendCollect getSendCollect() {
        return this.nettySendCollect;
+    
     }
+     // Override setSendCollect để dùng NettyMessageSendCollect
+    @Override
+    public nro.models.interfaces.ISession setSendCollect(nro.models.interfaces.IMessageSendCollect collect) {
+        // Ignore collect param, dùng nettySendCollect
+        return this;
+    }
+ @Override
+    public nro.models.interfaces.ISession setMessageHandler(nro.models.interfaces.IMessageHandler handler) {
+        this.messageHandler = handler;
+        return this;
+    }
+     // Override sendKey để tự xử lý (không qua MyKeyHandler)
     @Override
     public void sendKey() throws Exception {
         sendSessionKey();
@@ -49,8 +63,8 @@ public class NettySession extends MySession {
     
     @Override
     public void disconnect() {
-         System.out.println("⚠️ NettySession.disconnect() called!");
-        new Exception("Disconnect called from:").printStackTrace();
+//         System.out.println("⚠️ NettySession.disconnect() called!");
+//        new Exception("Disconnect called from:").printStackTrace();
 
         if (ctx != null && ctx.channel().isActive()) {
             ctx.close();

@@ -44,13 +44,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
             // ⭐ GỬI SESSION KEY NGAY
             try {
-                System.out.println("📤 Sending session key DIRECT...");
+//                System.out.println("📤 Sending session key DIRECT...");
                 sendSessionKeyDirect(ctx, session);
 
-                System.out.println("✅ Key sent! Waiting for client reply...");
+//                System.out.println("✅ Key sent! Waiting for client reply...");
             } catch (Exception ex) {
                 Logger.error("❌ Error sending key: " + ex.getMessage());
-                ex.printStackTrace();
+//                ex.printStackTrace();
                 ctx.close();
                 return;
             }
@@ -67,31 +67,31 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
-        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
+       
 
         NettySession session = ctx.channel().attr(SESSION_KEY).get();
-        System.out.println("📨 HANDLER: Received message cmd=" + msg.command);
+       
 
      if (session == null) {
-            System.out.println("❌ HANDLER: Session is null!");
+           
             return;
         }
      
-      // ⭐ QUAN TRỌNG: Set sentKey=true NGAY khi thấy cmd=-27!
-        // Phải set TRƯỚC KHI Decoder decode message tiếp theo!
+    // Set sentKey=true khi nhận cmd=-27
         if (msg.command == -27 && !session.sentKey()) {
-            System.out.println("⚠️ HANDLER: cmd=-27, setting sentKey=true BEFORE next decode!");
+           
             session.setSentKey(true);
         }
-        if (session.getQueueHandler() == null) {
-            System.out.println("❌ HANDLER: QueueHandler is null!");
-            return;
-        }
+      
 
         try {
-            session.getQueueHandler().addMessage(msg);
+             // ⭐ XỬ LÝ TRỰC TIẾP! KHÔNG QUA QUEUE!
+            // EventLoop thread xử lý luôn!
+            if (session.messageHandler != null) {
+                session.messageHandler.onMessage(session, msg);
+            }
         } catch (Exception e) {
-            System.out.println("❌ HANDLER: Error - " + e.getMessage());
+         Logger.error("❌ Error processing: " + e.getMessage());
             e.printStackTrace();
         }
     }

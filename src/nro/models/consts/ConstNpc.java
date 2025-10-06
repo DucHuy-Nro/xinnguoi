@@ -154,6 +154,7 @@ public class ConstNpc {
     public static final byte RUONG_SUU_TAM = 82;
     public static final byte DR_MYUU = 83;
     public static final byte XE_NUOC_MIA = 84;
+    public static final byte RED_BROLY = 111;
     //----------------------index menu------------------------------------------
     //menu o len tang map mabu
     public static final int GO_UPSTAIRS_MENU = 10000;
@@ -170,6 +171,11 @@ public class ConstNpc {
     public static final int MENU_OPEN_DBKB = 500;
     public static final int MENU_OPENED_DBKB = 501;
     public static final int MENU_ACCEPT_GO_TO_BDKB = 502;
+    
+    //menu red broly
+    public static final int RED_BROLY_TUYET_KY = 10001;
+    
+
 
     //index menu santa
     public static final int SANTA_PGG = 601;

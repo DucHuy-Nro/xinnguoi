@@ -28,7 +28,7 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             return;
         }
 
-        System.out.println("📥 DECODER: " + in.readableBytes() + " bytes, sentKey=" + session.sentKey());
+//        System.out.println("📥 DECODER: " + in.readableBytes() + " bytes, sentKey=" + session.sentKey());
 
         // ⭐ BACKUP curR
         int savedCurR = ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).getCurR();
@@ -41,7 +41,7 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
             if (session.sentKey()) {
                 cmd = session.getSendCollect().readKey(session, cmd);
             }
-    System.out.println("🔍 CMD=" + cmd);
+//    System.out.println("🔍 CMD=" + cmd);
             
      
            // Đọc size
@@ -58,11 +58,11 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
           
             
 
-           System.out.println("🔍 SIZE=" + size + ", avail=" + in.readableBytes());
+//           System.out.println("🔍 SIZE=" + size + ", avail=" + in.readableBytes());
 
             // Check đủ bytes
             if (in.readableBytes() < size) {
-                System.out.println("⏳ Not enough! Rollback curR: " + savedCurR);
+//                System.out.println("⏳ Not enough! Rollback curR: " + savedCurR);
                 // ⭐ ROLLBACK curR
                 ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).setCurR(savedCurR);
                 in.resetReaderIndex();
@@ -81,10 +81,10 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
               Message message = new Message(cmd, data);
             out.add(message);
 
-            System.out.println("✅ DECODED: cmd=" + cmd + ", size=" + size);
+//            System.out.println("✅ DECODED: cmd=" + cmd + ", size=" + size);
 
         } catch (Exception e) {
-            System.out.println("❌ DECODER: " + e.getMessage());
+//            System.out.println("❌ DECODER: " + e.getMessage());
             // ⭐ ROLLBACK curR
             ((nro.models.network.netty.NettyMessageSendCollect)session.getSendCollect()).setCurR(savedCurR);
             in.resetReaderIndex();

@@ -107,6 +107,7 @@ public class NpcFactory {
         int avatar = Manager.NPC_TEMPLATES.get(tempId).avatar;
         try {
             return switch (tempId) {
+              
                 case ConstNpc.GHI_DANH ->
                     new GhiDanh(mapId, status, cx, cy, tempId, avatar);
                 case ConstNpc.TRONG_TAI ->

@@ -55,6 +55,9 @@ public class ServerManager {
 
     public static String timeStart;
     public static final Map<Object, Object> CLIENTS = new HashMap<>();
+    // ⭐ SHARED ScheduledExecutor cho TẤT CẢ players!
+    public static final java.util.concurrent.ScheduledExecutorService PLAYER_UPDATER = 
+        java.util.concurrent.Executors.newScheduledThreadPool(4); // Chỉ 4 threads cho 1000 players!
     public static String NAME_SERVER = "Ngọc Rồng Onlime";
     public static String DOMAIN = "Server 1";
     public static String NAME = "Ngọc Rồng Online";
@@ -101,15 +104,15 @@ public class ServerManager {
             activeServerSocket();
 
             // Gửi các nhiệm vụ cập nhật theo từng dịch vụ
-            new Thread(NgocRongNamecService.gI(), "Update NRNM").start();
-            new Thread(SuperRankManager.gI(), "Update Super Rank").start();
-            new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
-            new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
-            new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
+//            new Thread(NgocRongNamecService.gI(), "Update NRNM").start();
+//            new Thread(SuperRankManager.gI(), "Update Super Rank").start();
+//            new Thread(The23rdMartialArtCongressManager.gI(), "Update DHVT23").start();
+//            new Thread(DeathOrAliveArenaManager.gI(), "Update Võ Đài Sinh Tử").start();
+//            new Thread(WorldMartialArtsTournamentManager.gI(), "Update WMAT").start();
             // new Thread(AutoMaintenance.gI(), "Update Bảo Trì Tự Động").start();
             // AutoMaintenance.AutoMaintenance = true;
             // AutoMaintenance.gI().start();
-            new Thread(ShenronEventManager.gI(), "Update Shenron").start();
+//            new Thread(ShenronEventManager.gI(), "Update Shenron").start();
 
             BossManager.gI().loadBoss();
             Manager.MAPS.forEach(nro.models.map.Map::initBoss);
@@ -189,12 +192,12 @@ public class ServerManager {
 
 public void activeServerSocket() {
     try {
-        Logger.success("✅ ĐANG DÙNG NETTY");
+        Logger.success("✅ NETTY CHUẨN - 0 threads/client!");
         
         new Thread(() -> {
-            try {
-                nro.models.network.netty.NettyServer nettyServer = 
-                    new nro.models.network.netty.NettyServer(PORT);
+ try {
+                    nro.models.network.netty.NettyServer nettyServer = 
+                        new nro.models.network.netty.NettyServer(PORT);
                 
                 nettyServer.setAcceptHandler(new ISessionAcceptHandler() {
                     @Override
@@ -233,7 +236,7 @@ public void activeServerSocket() {
         }, "NettyServerThread").start();
         
     } catch (Exception e) {
-        Logger.error("Lỗi khởi động: " + e.getMessage());
+      Logger.error("Lỗi: " + e.getMessage());
     }
 }
 
